@@ -59,23 +59,25 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse($quotes as $quote)
-                            <tr class="hover:bg-slate-50 transition">
+                            <tr class="transition {{ $quote->status === 'accepted' ? 'bg-emerald-50 hover:bg-emerald-100' : 'hover:bg-slate-50' }}">
                                 <td class="px-4 py-3 font-semibold text-slate-800">{{ $quote->quote_number }}</td>
                                 <td class="px-4 py-3 text-slate-500">{{ $quote->client->name }}</td>
                                 <td class="px-4 py-3 text-slate-500">{{ $quote->validity_date?->format('M j, Y') }}</td>
                                 <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ number_format($quote->total, 2) }}</td>
                                 <td class="px-4 py-3">
-                                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $quote->status === 'converted' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
+                                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $quote->status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : ($quote->status === 'converted' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600') }}">
                                         {{ $quote->status }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-right space-x-2">
                                     <a href="{{ route('quotes.show', $quote) }}" class="text-slate-600 hover:text-slate-900 font-semibold">View</a>
                                     <a href="{{ route('quotes.edit', $quote) }}" class="text-slate-600 hover:text-slate-900 font-semibold">Edit</a>
-                                    <form class="inline" method="POST" action="{{ route('quotes.convert', $quote) }}">
-                                        @csrf
-                                        <button type="submit" class="text-emerald-600 hover:text-emerald-500 font-semibold">Convert →</button>
-                                    </form>
+                                    @if($quote->status === 'accepted')
+                                        <form class="inline" method="POST" action="{{ route('quotes.convert', $quote) }}">
+                                            @csrf
+                                            <button type="submit" class="text-emerald-600 hover:text-emerald-500 font-semibold">Convert →</button>
+                                        </form>
+                                    @endif
                                     <form class="inline" method="POST" action="{{ route('quotes.destroy', $quote) }}">
                                         @csrf
                                         @method('DELETE')

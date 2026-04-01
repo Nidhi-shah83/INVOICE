@@ -23,11 +23,14 @@ class Quote extends Model
         'total',
         'notes',
         'order_id',
+        'accept_token',
+        'accepted_at',
     ];
 
     protected $casts = [
         'issue_date' => 'date',
         'validity_date' => 'date',
+        'accepted_at' => 'datetime',
     ];
 
     public function client()
@@ -48,5 +51,10 @@ class Quote extends Model
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function isAccepted(): bool
+    {
+        return $this->status === 'accepted';
     }
 }

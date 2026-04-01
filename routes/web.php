@@ -11,13 +11,20 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => redirect()->route('dashboard'))->name('home');
+Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
 
-Route::middleware(['auth:sanctum'])->group(function () {
+    return view('welcome');
+})->name('home');
+
+Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::resource('clients', ClientController::class);
     Route::resource('quotes', QuoteController::class);
+    Route::get('quotes/{quote}/download', [QuoteController::class, 'download'])->name('quotes.download');
     Route::post('quotes/{quote}/send', [QuoteController::class, 'send'])->name('quotes.send');
     Route::post('quotes/{quote}/convert', [QuoteController::class, 'convert'])->name('quotes.convert');
     Route::resource('orders', OrderController::class);
@@ -30,4 +37,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+Route::get('quotes/accept/{token}', [QuoteController::class, 'accept'])->name('quotes.accept');
 require __DIR__.'/auth.php';

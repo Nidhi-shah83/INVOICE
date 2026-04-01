@@ -61,6 +61,10 @@ class InvoiceService extends ModuleService
 
     public function convertQuoteToOrder(Quote $quote): Order
     {
+        if ($quote->status !== 'accepted') {
+            throw new \LogicException('Only accepted quotes can be converted.');
+        }
+
         if ($quote->order_id) {
             return $quote->order()->first();
         }

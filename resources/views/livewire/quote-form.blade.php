@@ -1,13 +1,14 @@
 <form wire:submit.prevent="saveDraft" class="space-y-6">
     <div class="grid gap-4 lg:grid-cols-3">
         <div>
-            <label class="block text-sm font-semibold text-slate-700" for="client">Client</label>
+            <label class="block text-sm font-semibold text-slate-700" for="client">Client <span class="text-rose-500">*</span></label>
             <select
                 id="client"
-                wire:model="client_id"
-                class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            >
-                <option value="" disabled>Select client</option>
+            wire:model="client_id"
+            wire:change="selectClient($event.target.value)"
+            class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        >
+                <option value="">Select client</option>
                 @foreach($clients as $client)
                     <option value="{{ $client->id }}">{{ $client->name }}</option>
                 @endforeach
@@ -37,6 +38,49 @@
         </div>
     </div>
 
+    @if($selectedClient)
+        <div class="space-y-3 rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Client</p>
+                    <h3 class="text-lg font-semibold text-slate-900">{{ $selectedClient->name }}</h3>
+                    <p class="text-xs text-slate-500">{{ $selectedClient->email ?? 'Email not set' }}</p>
+                    @if($selectedClient->phone)
+                        <p class="text-xs text-slate-500">{{ $selectedClient->phone }}</p>
+                    @endif
+                </div>
+                @php
+                    $badgeClass = $selectedClient->gst_type === 'intra'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-purple-100 text-purple-700';
+                @endphp
+                <span class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] {{ $badgeClass }}">
+                    {{ $selectedClient->gst_type === 'intra' ? 'CGST+SGST' : 'IGST' }}
+                </span>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-2">
+                @if($selectedClient->gstin)
+                    <div>
+                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">GSTIN</span>
+                        <p class="font-semibold text-slate-900">{{ $selectedClient->gstin }}</p>
+                    </div>
+                @endif
+                <div>
+                    <span class="text-xs uppercase tracking-[0.3em] text-slate-400">State</span>
+                    <p class="font-semibold text-slate-900">{{ $selectedClient->state }}</p>
+                </div>
+            </div>
+
+            @if($selectedClient->address)
+                <div>
+                    <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Address</p>
+                    <p class="text-sm text-slate-500">{{ $selectedClient->address }}</p>
+                </div>
+            @endif
+        </div>
+    @endif
+
     <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
@@ -45,7 +89,6 @@
                         <th class="px-4 py-3 text-left font-semibold">Item</th>
                         <th class="px-4 py-3 text-left font-semibold">Qty</th>
                         <th class="px-4 py-3 text-left font-semibold">Rate</th>
-                        <th class="px-4 py-3 text-left font-semibold">GST%</th>
                         <th class="px-4 py-3 text-right font-semibold">Amount</th>
                         <th class="px-4 py-3 text-center font-semibold">Actions</th>
                     </tr>
@@ -63,7 +106,7 @@
                             <td class="px-4 py-3">
                                 <input
                                     type="number"
-                                    wire:model.debounce="items.{{ $index }}.qty"
+                                    wire:model="items.{{ $index }}.qty"
                                     min="0"
                                     step="0.01"
                                     class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -72,18 +115,8 @@
                             <td class="px-4 py-3">
                                 <input
                                     type="number"
-                                    wire:model.debounce="items.{{ $index }}.rate"
+                                    wire:model="items.{{ $index }}.rate"
                                     min="0"
-                                    step="0.01"
-                                    class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                                >
-                            </td>
-                            <td class="px-4 py-3">
-                                <input
-                                    type="number"
-                                    wire:model.debounce="items.{{ $index }}.gst_percent"
-                                    min="0"
-                                    max="100"
                                     step="0.01"
                                     class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                                 >
@@ -105,7 +138,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="flex flex-wrap items-center justify-between gap-4 px-4 py-3">
+            <div class="flex flex-wrap items-center justify-between gap-4 px-4 py-3">
             <button
                 type="button"
                 wire:click.prevent="addItem"

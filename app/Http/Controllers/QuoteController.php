@@ -13,6 +13,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class QuoteController extends Controller
 {
@@ -20,7 +21,7 @@ class QuoteController extends Controller
         protected QuoteService $quoteService,
         protected InvoiceService $invoiceService,
     ) {
-        $this->middleware('auth:sanctum');
+        $this->middleware('auth:sanctum')->except('accept');
     }
 
     public function index(Request $request)
@@ -28,11 +29,11 @@ class QuoteController extends Controller
         $user = $request->user();
         $status = $request->query('status');
 
-        $urls = ['draft', 'sent', 'accepted', 'declined', 'expired', 'converted'];
+        $urls = ['all', 'draft', 'sent', 'accepted', 'declined', 'expired', 'converted'];
 
         $query = Quote::with('client')->where('user_id', $user->id);
 
-        if ($status) {
+        if ($status && $status !== 'all') {
             $query->where('status', $status);
         }
 
@@ -64,7 +65,7 @@ class QuoteController extends Controller
     {
         $this->ensureOwnership($quote);
 
-        $quote->load('items.client');
+        $quote->load('items');
 
         return view('quotes.show', compact('quote'));
     }
@@ -102,11 +103,20 @@ class QuoteController extends Controller
         $this->ensureOwnership($quote);
 
         $quote->load('client', 'items');
+        $token = (string) Str::uuid();
+        $quote->accept_token = $token;
+        $quote->status = 'sent';
+        $quote->accepted_at = null;
+        $quote->save();
+
         $pdf = Pdf::loadView('pdf.quote', compact('quote'));
         $path = 'quotes/'.$quote->quote_number.'.pdf';
         Storage::disk('public')->put($path, $pdf->output());
 
-        Mail::raw("Please find the attached quote {$quote->quote_number}.", function ($message) use ($quote, $pdf) {
+        Mail::send('emails.quote', [
+            'quote' => $quote,
+            'acceptUrl' => route('quotes.accept', ['token' => $token]),
+        ], function ($message) use ($quote, $pdf) {
             $message->to($quote->client->email)
                 ->subject("Quote {$quote->quote_number}")
                 ->attachData($pdf->output(), "{$quote->quote_number}.pdf");
@@ -115,13 +125,51 @@ class QuoteController extends Controller
         return redirect()->route('quotes.show', $quote)->with('status', 'Quote sent (PDF generated).');
     }
 
+    public function download(Quote $quote)
+    {
+        $this->ensureOwnership($quote);
+
+        $quote->load('client', 'items');
+
+        $pdf = Pdf::loadView('pdf.quote', compact('quote'));
+
+        return $pdf->download("{$quote->quote_number}.pdf");
+    }
+
     public function convert(Quote $quote)
     {
         $this->ensureOwnership($quote);
 
+        if ($quote->status !== 'accepted') {
+            return redirect()->route('quotes.show', $quote)->with('error', 'Only accepted quotes can be converted.');
+        }
+
         $order = $this->invoiceService->convertQuoteToOrder($quote);
 
         return redirect()->route('orders.show', $order)->with('status', 'Quote converted to order.');
+    }
+
+    public function accept(string $token)
+    {
+        $quote = Quote::where('accept_token', $token)->firstOrFail();
+
+        if (in_array($quote->status, ['accepted', 'converted'])) {
+            return view('quotes.accept', [
+                'quote' => $quote,
+                'already' => true,
+            ]);
+        }
+
+        $quote->update([
+            'status' => 'accepted',
+            'accepted_at' => now(),
+            'accept_token' => null,
+        ]);
+
+        return view('quotes.accept', [
+            'quote' => $quote,
+            'already' => false,
+        ]);
     }
 
     protected function payload(QuoteRequest $request): array

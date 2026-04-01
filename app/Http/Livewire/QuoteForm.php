@@ -7,6 +7,7 @@ use App\Models\Quote;
 use App\Services\InvoiceService;
 use App\Services\QuoteService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 
@@ -20,21 +21,29 @@ class QuoteForm extends Component
     public string $status = 'draft';
     public ?string $notes = null;
     public array $items = [];
+    public Collection $clients;
+    public ?Client $selectedClient = null;
 
-    protected QuoteService $quoteService;
-    protected InvoiceService $invoiceService;
+    protected ?QuoteService $quoteService = null;
+    protected ?InvoiceService $invoiceService = null;
 
-    public function mount(QuoteService $quoteService, InvoiceService $invoiceService, ?Quote $quote = null): void
+    public function mount(?Quote $quote = null): void
     {
-        $this->quoteService = $quoteService;
-        $this->invoiceService = $invoiceService;
+        $this->quoteService = $this->quoteService ?? app(QuoteService::class);
+        $this->invoiceService = $this->invoiceService ?? app(InvoiceService::class);
         $this->quote = $quote;
+
+        $this->clients = Client::where('user_id', auth()->id())->orderBy('name')->get();
 
         $this->issue_date = $quote?->issue_date?->format('Y-m-d') ?? now()->format('Y-m-d');
         $this->validity_date = $quote?->validity_date?->format('Y-m-d') ?? now()->addWeek()->format('Y-m-d');
         $this->client_id = $quote?->client_id ?? null;
         $this->status = $quote?->status ?? 'draft';
         $this->notes = $quote?->notes ?? null;
+
+        if ($this->client_id) {
+            $this->selectedClient = $this->clients->firstWhere('id', $this->client_id);
+        }
 
         if ($quote && $quote->items->isNotEmpty()) {
             $this->items = $quote->items->map(fn ($item) => [
@@ -69,7 +78,7 @@ class QuoteForm extends Component
     {
         $quote = $this->saveQuote('draft');
 
-        $this->dispatch('quote-saved', ['message' => 'Quote saved as draft.']);
+        $this->dispatchBrowserEvent('quote-saved', ['message' => 'Quote saved as draft.']);
     }
 
     public function sendNow(): void
@@ -81,7 +90,7 @@ class QuoteForm extends Component
 
     public function getTotalsProperty(): array
     {
-        $client = Client::find($this->client_id);
+        $client = $this->client_id ? Client::find($this->client_id) : null;
         $subtotal = $cgst = $sgst = $igst = 0;
 
         foreach ($this->items as $item) {
@@ -92,12 +101,12 @@ class QuoteForm extends Component
             $line = $qty * $rate;
             $subtotal += $line;
 
-            if ($client) {
-                $charges = $this->invoiceService->calculateGST($client, $line, $gst);
-                $cgst += $charges['cgst'];
-                $sgst += $charges['sgst'];
-                $igst += $charges['igst'];
-            }
+                if ($client) {
+                    $charges = $this->resolveInvoiceService()->calculateGST($client, $line, $gst);
+                    $cgst += $charges['cgst'];
+                    $sgst += $charges['sgst'];
+                    $igst += $charges['igst'];
+                }
         }
 
         return [
@@ -112,8 +121,9 @@ class QuoteForm extends Component
     public function render(): View
     {
         return view('livewire.quote-form', [
-            'clients' => Client::where('user_id', auth()->id())->orderBy('name')->get(),
+            'clients' => $this->clients,
             'totals' => $this->totals,
+            'selectedClient' => $this->selectedClient,
         ]);
     }
 
@@ -136,6 +146,7 @@ class QuoteForm extends Component
     protected function saveQuote(string $status): Quote
     {
         $this->sanitizeItems();
+
         $this->validate();
 
         $payload = [
@@ -148,7 +159,7 @@ class QuoteForm extends Component
             'items' => $this->items,
         ];
 
-        $quote = $this->quoteService->persist($payload, $this->quote);
+        $quote = $this->resolveQuoteService()->persist($payload, $this->quote);
         $this->quote = $quote;
 
         return $quote;
@@ -178,5 +189,28 @@ class QuoteForm extends Component
             'rate' => 0,
             'gst_percent' => 18,
         ];
+    }
+
+    public function updatedClientId($value): void
+    {
+        $this->selectedClient = $value
+            ? $this->clients->firstWhere('id', $value)
+            : null;
+    }
+
+    public function selectClient($clientId): void
+    {
+        $this->client_id = $clientId;
+        $this->updatedClientId($clientId);
+    }
+
+    protected function resolveQuoteService(): QuoteService
+    {
+        return $this->quoteService ??= app(QuoteService::class);
+    }
+
+    protected function resolveInvoiceService(): InvoiceService
+    {
+        return $this->invoiceService ??= app(InvoiceService::class);
     }
 }
