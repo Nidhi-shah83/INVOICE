@@ -19,6 +19,11 @@ class Order extends Model
         'billed_amount',
     ];
 
+    protected $casts = [
+        'total_amount' => 'decimal:2',
+        'billed_amount' => 'decimal:2',
+    ];
+
     public function client()
     {
         return $this->belongsTo(Client::class);
@@ -27,5 +32,25 @@ class Order extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function items()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function quote()
+    {
+        return $this->belongsTo(Quote::class);
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function getRemainingAmountAttribute(): float
+    {
+        return max(0, $this->total_amount - $this->billed_amount);
     }
 }
