@@ -12,6 +12,11 @@ class QuoteService
     {
     }
 
+    public function generateQuoteNumber(int $userId): string
+    {
+        return $this->invoiceService->generateQuoteNumber($userId);
+    }
+
     public function persist(array $data, ?Quote $quote = null): Quote
     {
         $userId = $data['user_id'];

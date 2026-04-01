@@ -23,6 +23,7 @@ class QuoteForm extends Component
     public array $items = [];
     public Collection $clients;
     public ?Client $selectedClient = null;
+    public ?string $quoteNumberPreview = null;
 
     protected ?QuoteService $quoteService = null;
     protected ?InvoiceService $invoiceService = null;
@@ -41,9 +42,8 @@ class QuoteForm extends Component
         $this->status = $quote?->status ?? 'draft';
         $this->notes = $quote?->notes ?? null;
 
-        if ($this->client_id) {
-            $this->selectedClient = $this->clients->firstWhere('id', $this->client_id);
-        }
+        $this->selectedClient = $this->loadClient($this->client_id);
+        $this->quoteNumberPreview = $quote?->quote_number ?? $this->resolveQuoteService()->generateQuoteNumber(auth()->id());
 
         if ($quote && $quote->items->isNotEmpty()) {
             $this->items = $quote->items->map(fn ($item) => [
@@ -78,7 +78,7 @@ class QuoteForm extends Component
     {
         $quote = $this->saveQuote('draft');
 
-        $this->dispatchBrowserEvent('quote-saved', ['message' => 'Quote saved as draft.']);
+        session()->flash('status', 'Quote saved as draft.');
     }
 
     public function sendNow(): void
@@ -90,7 +90,7 @@ class QuoteForm extends Component
 
     public function getTotalsProperty(): array
     {
-        $client = $this->client_id ? Client::find($this->client_id) : null;
+        $client = $this->loadClient($this->client_id);
         $subtotal = $cgst = $sgst = $igst = 0;
 
         foreach ($this->items as $item) {
@@ -124,6 +124,7 @@ class QuoteForm extends Component
             'clients' => $this->clients,
             'totals' => $this->totals,
             'selectedClient' => $this->selectedClient,
+            'quoteNumberPreview' => $this->quoteNumberPreview,
         ]);
     }
 
@@ -161,6 +162,8 @@ class QuoteForm extends Component
 
         $quote = $this->resolveQuoteService()->persist($payload, $this->quote);
         $this->quote = $quote;
+        $this->quoteNumberPreview = $quote->quote_number;
+        $this->selectedClient = $this->loadClient($quote->client_id);
 
         return $quote;
     }
@@ -193,15 +196,7 @@ class QuoteForm extends Component
 
     public function updatedClientId($value): void
     {
-        $this->selectedClient = $value
-            ? $this->clients->firstWhere('id', $value)
-            : null;
-    }
-
-    public function selectClient($clientId): void
-    {
-        $this->client_id = $clientId;
-        $this->updatedClientId($clientId);
+        $this->selectedClient = $this->loadClient($value);
     }
 
     protected function resolveQuoteService(): QuoteService
@@ -212,5 +207,14 @@ class QuoteForm extends Component
     protected function resolveInvoiceService(): InvoiceService
     {
         return $this->invoiceService ??= app(InvoiceService::class);
+    }
+
+    protected function loadClient(?int $clientId): ?Client
+    {
+        if (! $clientId) {
+            return null;
+        }
+
+        return Client::where('user_id', auth()->id())->find($clientId);
     }
 }

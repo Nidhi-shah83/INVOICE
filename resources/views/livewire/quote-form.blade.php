@@ -1,13 +1,23 @@
 <form wire:submit.prevent="saveDraft" class="space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
+        <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Quote Number</p>
+            <p class="text-2xl font-semibold text-slate-900">{{ $quoteNumberPreview ?? 'Draft' }}</p>
+        </div>
+        <div class="text-right text-xs text-slate-500">
+            <p>Business GSTIN: {{ config('invoice.gstin', 'XX0000XXXX') }}</p>
+            <p>{{ config('invoice.business_name') }}</p>
+        </div>
+    </div>
+
     <div class="grid gap-4 lg:grid-cols-3">
         <div>
             <label class="block text-sm font-semibold text-slate-700" for="client">Client <span class="text-rose-500">*</span></label>
             <select
                 id="client"
             wire:model="client_id"
-            wire:change="selectClient($event.target.value)"
-            class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-        >
+                class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            >
                 <option value="">Select client</option>
                 @foreach($clients as $client)
                     <option value="{{ $client->id }}">{{ $client->name }}</option>
@@ -81,7 +91,7 @@
         </div>
     @endif
 
-    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-900 text-white">

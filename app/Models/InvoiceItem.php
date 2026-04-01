@@ -5,32 +5,34 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class OrderItem extends Model
+class InvoiceItem extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'order_id',
+        'invoice_id',
+        'order_item_id',
         'name',
-        'qty',
+        'qty_billed',
         'rate',
         'gst_percent',
-        'qty_billed',
+        'amount',
     ];
 
     protected $casts = [
-        'qty' => 'decimal:2',
+        'qty_billed' => 'decimal:2',
         'rate' => 'decimal:2',
         'gst_percent' => 'decimal:2',
+        'amount' => 'decimal:2',
     ];
 
-    public function order()
+    public function invoice()
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Invoice::class);
     }
 
-    public function getQtyRemainingAttribute(): float
+    public function orderItem()
     {
-        return max(0, $this->qty - $this->qty_billed);
+        return $this->belongsTo(OrderItem::class);
     }
 }

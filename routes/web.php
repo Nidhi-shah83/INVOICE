@@ -28,7 +28,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('quotes/{quote}/send', [QuoteController::class, 'send'])->name('quotes.send');
     Route::post('quotes/{quote}/convert', [QuoteController::class, 'convert'])->name('quotes.convert');
     Route::resource('orders', OrderController::class);
+    Route::post('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.updateStatus');
+    Route::post('orders/{order}/invoice', [OrderController::class, 'createInvoice'])->name('orders.createInvoice');
     Route::resource('invoices', InvoiceController::class);
+    Route::get('invoices/{invoice}/download', [InvoiceController::class, 'download'])->name('invoices.download');
+    Route::post('invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
+    Route::get('invoices/overdue', [InvoiceController::class, 'overdue'])->name('invoices.overdue');
+    Route::patch('invoices/{invoice}/paid', [InvoiceController::class, 'markPaid'])->name('invoices.markPaid');
+    Route::post('invoices/{invoice}/paid/manual', [InvoiceController::class, 'markPaidManually'])->name('invoices.markPaidManual');
     Route::resource('ai-assistant', AiAssistantController::class)->parameters(['ai-assistant' => 'aiAssistant']);
     Route::resource('reports', ReportController::class);
     Route::resource('settings', SettingController::class);
