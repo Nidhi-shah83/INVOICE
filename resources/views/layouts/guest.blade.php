@@ -21,7 +21,7 @@
                     <h1 class="text-3xl font-semibold text-slate-900">{{ config('app.name', 'Invoice App') }}</h1>
                 </div>
                 <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 p-6">
-                    {{ $slot }}
+                    @yield('content')
                 </div>
             </div>
         </main>
