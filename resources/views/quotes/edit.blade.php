@@ -1,0 +1,11 @@
+@extends('layouts.app')
+
+@section('page-title', 'Edit Quote')
+
+@section('content')
+    <div class="space-y-6">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            @livewire('quote-form', ['quote' => $quote])
+        </div>
+    </div>
+@endsection

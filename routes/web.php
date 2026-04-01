@@ -18,6 +18,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::resource('clients', ClientController::class);
     Route::resource('quotes', QuoteController::class);
+    Route::post('quotes/{quote}/send', [QuoteController::class, 'send'])->name('quotes.send');
+    Route::post('quotes/{quote}/convert', [QuoteController::class, 'convert'])->name('quotes.convert');
     Route::resource('orders', OrderController::class);
     Route::resource('invoices', InvoiceController::class);
     Route::resource('ai-assistant', AiAssistantController::class)->parameters(['ai-assistant' => 'aiAssistant']);
