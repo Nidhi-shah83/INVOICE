@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'n8n' => [
+        'webhook_parse' => env('N8N_WEBHOOK_PARSE'),
+        'webhook_send' => env('N8N_WEBHOOK_SEND'),
+        'webhook_expense' => env('N8N_WEBHOOK_EXPENSE'),
+        'secret' => env('N8N_SECRET'),
+    ],
+
 ];

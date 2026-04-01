@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\AiAssistantController;
+use App\Http\Controllers\AIController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
@@ -37,6 +37,9 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('invoices/{invoice}/paid', [InvoiceController::class, 'markPaid'])->name('invoices.markPaid');
     Route::post('invoices/{invoice}/paid/manual', [InvoiceController::class, 'markPaidManually'])->name('invoices.markPaidManual');
     Route::resource('ai-assistant', AiAssistantController::class)->parameters(['ai-assistant' => 'aiAssistant']);
+    Route::get('ai-assistant', [AIController::class, 'chat'])->name('ai-assistant.index');
+    Route::get('ai-assistant/chat', [AIController::class, 'chat'])->name('ai-assistant.chat');
+    Route::post('ai-assistant/parse', [AIController::class, 'parse'])->name('ai-assistant.parse');
     Route::resource('reports', ReportController::class);
     Route::resource('settings', SettingController::class);
 
