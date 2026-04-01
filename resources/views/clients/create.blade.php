@@ -1,0 +1,22 @@
+@extends('layouts.app')
+
+@section('page-title', 'New Client')
+
+@section('content')
+    <div class="space-y-6">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <form method="POST" action="{{ route('clients.store') }}" class="space-y-6">
+                @csrf
+
+                @include('clients.partials.form')
+
+                <div class="flex items-center justify-end">
+                    <a href="{{ route('clients.index') }}" class="text-sm text-slate-500 hover:text-slate-900">Cancel</a>
+                    <button type="submit" class="ml-4 inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-slate-800 transition">
+                        Save client
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+@endsection
