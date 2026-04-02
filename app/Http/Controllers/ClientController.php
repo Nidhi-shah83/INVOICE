@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
 {
@@ -82,15 +83,26 @@ class ClientController extends Controller
 
     protected function validateClient(Request $request): array
     {
-        $stateRule = ['required', 'string'];
-
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'gstin' => ['nullable', 'string', 'size:15', 'regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/'],
-            'state' => $stateRule,
-            'address' => ['nullable', 'string'],
+            'company_name' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['required', 'digits_between:10,15'],
+            'alternate_phone' => ['nullable', 'digits_between:10,15'],
+            'gstin' => [
+                Rule::requiredIf(fn () => $request->input('client_type') === 'business'),
+                'nullable',
+                'size:15',
+                'regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/',
+            ],
+            'state' => ['required', 'string'],
+            'place_of_supply' => ['required', 'string'],
+            'address' => ['required', 'string'],
+            'city' => ['required', 'string', 'max:255'],
+            'pincode' => ['required', 'digits:6'],
+            'country' => ['required', 'string', 'max:255'],
+            'client_type' => ['required', Rule::in(['individual', 'business'])],
+            'notes' => ['nullable', 'string'],
         ]);
     }
 

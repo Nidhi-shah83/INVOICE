@@ -25,6 +25,16 @@ class Quote extends Model
         'order_id',
         'accept_token',
         'accepted_at',
+        'discount_type',
+        'discount_value',
+        'discount_amount',
+        'round_off',
+        'grand_total',
+        'currency',
+        'payment_terms',
+        'terms_conditions',
+        'salesperson',
+        'reference_no',
     ];
 
     protected $casts = [
@@ -56,5 +66,10 @@ class Quote extends Model
     public function isAccepted(): bool
     {
         return $this->status === 'accepted';
+    }
+
+    public function getFinalTotalAttribute(): float
+    {
+        return (float) $this->grand_total;
     }
 }

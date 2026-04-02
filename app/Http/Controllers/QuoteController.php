@@ -140,10 +140,6 @@ class QuoteController extends Controller
     {
         $this->ensureOwnership($quote);
 
-        if ($quote->status !== 'accepted') {
-            return redirect()->route('quotes.show', $quote)->with('error', 'Only accepted quotes can be converted.');
-        }
-
         $order = $this->invoiceService->convertQuoteToOrder($quote);
 
         return redirect()->route('orders.show', $order)->with('status', 'Quote converted to order.');
@@ -176,7 +172,7 @@ class QuoteController extends Controller
     {
         return array_merge($request->validated(), [
             'user_id' => $request->user()->id,
-            'issue_date' => now()->toDateString(),
+            'issue_date' => $request->input('issue_date') ?? now()->toDateString(),
         ]);
     }
 
