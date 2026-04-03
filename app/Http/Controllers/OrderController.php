@@ -62,6 +62,17 @@ class OrderController extends Controller
 
         $order->update(['status' => $data['status']]);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Order status updated.',
+                'order' => [
+                    'id' => $order->id,
+                    'status' => $order->status,
+                ],
+            ]);
+        }
+
         return back()->with('status', 'Order status updated.');
     }
 
