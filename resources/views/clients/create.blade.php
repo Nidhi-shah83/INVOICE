@@ -8,7 +8,7 @@
             <form method="POST" action="{{ route('clients.store') }}" class="space-y-6">
                 @csrf
 
-                @include('clients.partials.form')
+                @include('clients.partials.form', ['client' => null])
 
                 <div class="flex items-center justify-end">
                     <a href="{{ route('clients.index') }}" class="text-sm text-slate-500 hover:text-slate-900">Cancel</a>

@@ -1,19 +1,10 @@
-<div
-    x-data="{
-        clientType: @json(old('client_type', $client->client_type ?? 'individual')),
-        state: @json(old('state', $client->state ?? '')),
-        placeOfSupply: @json(old('place_of_supply', $client->place_of_supply ?? '')),
-        manualPlace: @json((bool) old('place_of_supply', $client->place_of_supply ?? '')),
-        init() {
-            if (!this.placeOfSupply) {
-                this.placeOfSupply = this.state;
-            }
-        }
-    }"
-    x-init="init"
-    x-effect="if (!manualPlace) placeOfSupply = state"
-    class="space-y-6"
->
+@php
+    $clientType = old('client_type', optional($client)->client_type ?? 'individual');
+    $stateValue = old('state', optional($client)->state ?? '');
+    $placeOfSupplyValue = old('place_of_supply', optional($client)->place_of_supply ?? '');
+@endphp
+
+<div class="space-y-6" data-client-form>
     <div class="grid gap-6 xl:grid-cols-2">
         <section class="space-y-4 rounded-2xl border border-slate-200 bg-white/60 p-5 shadow-sm">
         <header class="flex items-center justify-between">
@@ -45,7 +36,6 @@
                     <select
                         id="client_type"
                         name="client_type"
-                        x-model="clientType"
                         class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         required
                     >
@@ -58,10 +48,9 @@
                 </div>
 
                 <div
-                    x-show="clientType === 'business'"
-                    x-transition
-                    style="display: none;"
+                    data-business-only
                     class="space-y-1"
+                    style="display: none;"
                 >
                     <label class="block text-sm font-semibold text-slate-700" for="company_name">Company name</label>
                     <input
@@ -147,10 +136,9 @@
 
         <div class="grid gap-4 md:grid-cols-2">
             <div
-                x-show="clientType === 'business'"
-                x-transition
-                style="display: none;"
+                data-business-only
                 class="space-y-1"
+                style="display: none;"
             >
                 <label class="block text-sm font-semibold text-slate-700" for="gstin">GSTIN</label>
                 <input
@@ -171,7 +159,6 @@
                 <select
                     id="state"
                     name="state"
-                    x-model="state"
                     class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     required
                 >
@@ -192,8 +179,6 @@
                     name="place_of_supply"
                     type="text"
                     value="{{ old('place_of_supply', $client->place_of_supply ?? '') }}"
-                    x-model="placeOfSupply"
-                    @input="manualPlace = true"
                     class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     required
                 >
@@ -203,9 +188,6 @@
             </div>
         </div>
 
-        <template x-if="!manualPlace">
-            <div x-effect="placeOfSupply = state"></div>
-        </template>
     </section>
 
     <section class="space-y-4 rounded-2xl border border-slate-200 bg-white/60 p-5 shadow-sm">
@@ -299,6 +281,60 @@
                 <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
             @enderror
         </div>
-    </section>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('[data-client-form]').forEach(form => {
+            const clientTypeSelect = form.querySelector('#client_type');
+            const businessBlocks = form.querySelectorAll('[data-business-only]');
+            const stateSelect = form.querySelector('#state');
+            const placeInput = form.querySelector('#place_of_supply');
+
+            const toggleBusinessFields = () => {
+                const showBusiness = clientTypeSelect?.value === 'business';
+                businessBlocks.forEach(block => {
+                    block.style.display = showBusiness ? 'block' : 'none';
+                });
+            };
+
+            toggleBusinessFields();
+            clientTypeSelect?.addEventListener('change', toggleBusinessFields);
+
+            const syncPlaceOfSupply = () => {
+                if (!placeInput || !stateSelect) {
+                    return;
+                }
+
+                if (!placeInput.value) {
+                    placeInput.value = stateSelect.value;
+                    placeInput.dataset.sync = 'true';
+                    return;
+                }
+            };
+
+            stateSelect?.addEventListener('change', () => {
+                if (!placeInput) {
+                    return;
+                }
+
+                if (placeInput.dataset.sync !== 'false') {
+                    placeInput.value = stateSelect.value;
+                    placeInput.dataset.sync = 'true';
+                }
+            });
+
+            placeInput?.addEventListener('input', () => {
+                if (!stateSelect) {
+                    return;
+                }
+
+                placeInput.dataset.sync = placeInput.value === stateSelect.value ? 'true' : 'false';
+            });
+
+            syncPlaceOfSupply();
+        });
+    });
+</script>
 
 </div>

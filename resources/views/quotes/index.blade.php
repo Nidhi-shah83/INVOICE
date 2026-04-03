@@ -91,10 +91,22 @@
                                 <td class="px-4 py-3 text-right space-x-2">
                                     <a href="{{ route('quotes.show', $quote) }}" class="text-slate-600 hover:text-slate-900 font-semibold">View</a>
                                     <a href="{{ route('quotes.edit', $quote) }}" class="text-slate-600 hover:text-slate-900 font-semibold">Edit</a>
-                                    <form class="inline" method="POST" action="{{ route('quotes.convert', $quote) }}">
-                                        @csrf
-                                        <button type="submit" class="text-emerald-600 hover:text-emerald-500 font-semibold">Convert to Invoice</button>
-                                    </form>
+                                    @if($quote->status !== 'converted')
+                                        <form
+                                            class="inline"
+                                            method="POST"
+                                            action="{{ route('quotes.convert', $quote) }}"
+                                            onsubmit="return confirm('Convert this quote to an order? This cannot be undone.')"
+                                        >
+                                            @csrf
+                                            <button
+                                                type="submit"
+                                                class="text-emerald-600 hover:text-emerald-500 font-semibold"
+                                            >
+                                                Convert to Order
+                                            </button>
+                                        </form>
+                                    @endif
                                     <form class="inline" method="POST" action="{{ route('quotes.destroy', $quote) }}">
                                         @csrf
                                         @method('DELETE')
