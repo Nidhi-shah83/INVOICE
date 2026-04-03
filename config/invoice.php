@@ -9,4 +9,7 @@ return [
     'order_prefix' => env('ORDER_PREFIX', 'ORD'),
     'default_due_days' => env('INVOICE_DEFAULT_DUE_DAYS', 15),
     'overdue_secret' => env('INVOICE_OVERDUE_SECRET', 'changeme'),
+    'quote_payment_terms' => env('QUOTE_PAYMENT_TERMS', 'Payment due within 15 days of acceptance'),
+    'currency' => env('INVOICE_CURRENCY', 'INR'),
+    'currency_symbol' => env('INVOICE_CURRENCY_SYMBOL', '₹'),
 ];

@@ -28,7 +28,8 @@ class ClientIndex extends Component
             ->where('user_id', auth()->id())
             ->when($this->search, fn (Builder $query) => $query->where(function (Builder $sub) {
                 $sub->where('name', 'like', '%'.$this->search.'%')
-                    ->orWhere('gstin', 'like', '%'.$this->search.'%');
+                    ->orWhere('gstin', 'like', '%'.$this->search.'%')
+                    ->orWhere('company_name', 'like', '%'.$this->search.'%');
             }))
             ->orderBy('name')
             ->paginate(10);

@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Config;
-
 class Client extends Model
 {
     use HasFactory;
@@ -13,11 +11,19 @@ class Client extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'company_name',
         'email',
         'phone',
+        'alternate_phone',
         'gstin',
         'state',
+        'place_of_supply',
         'address',
+        'city',
+        'pincode',
+        'country',
+        'client_type',
+        'notes',
     ];
 
     public function user()
@@ -42,8 +48,13 @@ class Client extends Model
 
     public function getGstTypeAttribute(): string
     {
-        return $this->state === Config::get('invoice.state')
-            ? 'intra'
-            : 'inter';
+        $place = $this->place_of_supply ?: $this->state;
+
+        return $this->state && $place && $this->state === $place ? 'intra' : 'inter';
+    }
+
+    public function isBusiness(): bool
+    {
+        return $this->client_type === 'business';
     }
 }
