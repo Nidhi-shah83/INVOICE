@@ -47,6 +47,9 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::get('/pay-invoice/{invoice}', [InvoiceController::class, 'showPaymentPage'])->name('invoices.pay');
+Route::post('/pay-invoice/{invoice}', [InvoiceController::class, 'processPayment'])->name('invoices.pay.process');
+
 Route::view('/payment-success', 'payments.success')->name('payment.success');
 
 Route::get('quotes/accept/{token}', [QuoteController::class, 'accept'])->name('quotes.accept');

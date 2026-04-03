@@ -380,9 +380,15 @@ class InvoiceService extends ModuleService
         Storage::disk('local')->put($path, $pdf->output());
 
         $grandTotal = (float) $invoice->grand_total;
-        $currency = $invoice->currency ?? config('invoice.currency', 'INR');
-        $razorpayOrder = $this->razorpayService->createOrder($grandTotal, $currency, $invoice->invoice_number);
-        $paymentLink = $this->razorpayService->getCheckoutUrl($razorpayOrder['id']);
+        // ===== Razorpay Integration (Production Only) =====
+        // This code is disabled for demo without KYC
+        // Uncomment when using real payments
+        // $currency = $invoice->currency ?? config('invoice.currency', 'INR');
+        // $razorpayOrder = $this->razorpayService->createOrder($grandTotal, $currency, $invoice->invoice_number);
+        // $orderId = (string) ($razorpayOrder['id'] ?? '');
+        // $paymentLink = $this->razorpayService->getCheckoutUrl($orderId);
+        $orderId = null;
+        $paymentLink = route('invoices.pay', $invoice->id);
 
         $invoice->update([
             'status' => 'sent',

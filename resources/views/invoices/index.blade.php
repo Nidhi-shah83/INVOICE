@@ -47,7 +47,6 @@
                             <th class="px-4 py-3 text-left font-semibold">Client</th>
                             <th class="px-4 py-3 text-right font-semibold">Grand Total</th>
                             <th class="px-4 py-3 text-right font-semibold">Amount Due</th>
-                            <th class="px-4 py-3 text-left font-semibold">Payment Status</th>
                             <th class="px-4 py-3 text-left font-semibold">Due Date</th>
                             <th class="px-4 py-3 text-left font-semibold">Status</th>
                             <th class="px-4 py-3 text-center font-semibold">Actions</th>
@@ -77,18 +76,7 @@
                                 <td class="px-4 py-3 text-right font-semibold text-rose-600">
                                     {{ $currencySymbol }}{{ number_format($invoice->amount_due, 2) }}
                                 </td>
-                                <td class="px-4 py-3">
-                                    @php
-                                        $paymentClasses = match ($invoice->payment_status) {
-                                            'paid' => 'bg-emerald-100 text-emerald-700',
-                                            'partial' => 'bg-amber-100 text-amber-700',
-                                            default => 'bg-slate-100 text-slate-600',
-                                        };
-                                    @endphp
-                                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] {{ $paymentClasses }}">
-                                        {{ strtoupper($invoice->payment_status) }}
-                                    </span>
-                                </td>
+
                                 <td class="px-4 py-3 text-slate-600">
                                     {{ $invoice->due_date?->format('d M, Y') ?? '—' }}
                                 </td>
@@ -109,7 +97,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td class="px-4 py-6 text-center text-slate-400" colspan="8">
+                                <td class="px-4 py-6 text-center text-slate-400" colspan="7">
                                     No invoices yet.
                                 </td>
                             </tr>
@@ -123,3 +111,4 @@
         </div>
     </div>
 @endsection
+

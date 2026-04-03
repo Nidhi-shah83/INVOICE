@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\InvoiceSentMail;
 use App\Mail\PaymentConfirmedMail;
+use App\Mail\PaymentSuccessMail;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Services\InvoiceService;
@@ -27,7 +28,7 @@ class InvoiceController extends Controller
         protected RazorpayService $razorpayService,
     )
     {
-        $this->middleware('auth')->except(['overdue', 'markPaid']);
+        $this->middleware('auth')->except(['overdue', 'markPaid', 'showPaymentPage', 'processPayment']);
     }
 
     public function index(Request $request)
@@ -210,9 +211,14 @@ class InvoiceController extends Controller
         $path = 'invoices/'.$invoice->invoice_number.'.pdf';
         Storage::disk('local')->put($path, $pdf->output());
 
-        $paymentLinkResponse = $this->razorpayService->createPaymentLink($invoice);
-        $orderId = (string) ($paymentLinkResponse['id'] ?? '');
-        $paymentLink = (string) ($paymentLinkResponse['short_url'] ?? '');
+        // ===== Razorpay Integration (Production Only) =====
+        // This code is disabled for demo without KYC
+        // Uncomment when using real payments
+        // $paymentLinkResponse = $this->razorpayService->createPaymentLink($invoice);
+        // $orderId = (string) ($paymentLinkResponse['id'] ?? '');
+        // $paymentLink = (string) ($paymentLinkResponse['short_url'] ?? '');
+        $orderId = null;
+        $paymentLink = route('invoices.pay', $invoice->id);
 
         $invoice->update([
             'status' => 'sent',
@@ -225,6 +231,37 @@ class InvoiceController extends Controller
             ->send(new InvoiceSentMail($invoice, $paymentLink, $pdf));
 
         return redirect()->route('invoices.show', $invoice)->with('status', 'Invoice sent.');
+    }
+
+    public function showPaymentPage($id): View
+    {
+        $invoice = Invoice::with('client')->findOrFail($id);
+
+        return view('payments.demo', compact('invoice'));
+    }
+
+    public function processPayment(Request $request, $id): RedirectResponse
+    {
+        $invoice = Invoice::with('client')->findOrFail($id);
+        $amountPaid = (float) ($invoice->grand_total ?? $invoice->total ?? 0);
+
+        $invoice->status = 'paid';
+        $invoice->payment_status = 'paid';
+        $invoice->amount_paid = $amountPaid;
+        $invoice->amount_due = 0;
+        $invoice->save();
+
+        if (! empty($invoice->client?->email)) {
+            Mail::to($invoice->client->email)->send(new PaymentSuccessMail($invoice));
+        }
+
+        return redirect()
+            ->route('payment.success')
+            ->with('payment_success', [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'amount' => $amountPaid,
+            ]);
     }
 
     public function markPaid(Request $request, Invoice $invoice)

@@ -13,8 +13,8 @@
             <p style="color:#475569;">
                 Please find your invoice attached. The total due is <strong>{{ $invoice->formatted_grand_total }}</strong>. Pay securely before <strong>{{ $invoice->due_date?->format('F d, Y') }}</strong> to avoid a reminder.
             </p>
-            <a href="{{ $paymentLink }}" style="display:inline-flex; align-items:center; justify-content:center; background:#059669; color:#fff; padding:14px 28px; border-radius:999px; text-decoration:none; font-weight:600; margin-top:16px;">
-                Pay Now
+            <a href="{{ route('invoices.pay', $invoice->id) }}" style="display:inline-flex; align-items:center; justify-content:center; background:#059669; color:#fff; padding:14px 28px; border-radius:999px; text-decoration:none; font-weight:600; margin-top:16px;">
+                Make Payment
             </a>
 
             <div style="margin-top:32px;">
@@ -55,3 +55,4 @@
         </div>
     </body>
 </html>
+
