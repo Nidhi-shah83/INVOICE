@@ -28,6 +28,7 @@ class QuoteController extends Controller
     {
         $user = $request->user();
         $status = $request->query('status');
+        $search = trim((string) $request->query('search', ''));
 
         $urls = ['all', 'draft', 'sent', 'accepted', 'declined', 'expired', 'converted'];
 
@@ -37,6 +38,15 @@ class QuoteController extends Controller
             $query->where('status', $status);
         }
 
+        if ($search !== '') {
+            $query->where(function ($sub) use ($search) {
+                $sub->where('quote_number', 'like', "%{$search}%")
+                    ->orWhereHas('client', function ($clientQuery) use ($search) {
+                        $clientQuery->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
         $quotes = $query->orderByDesc('created_at')->paginate(12);
 
         return view('quotes.index', [
@@ -44,6 +54,8 @@ class QuoteController extends Controller
             'pipeline' => $this->pipeline($user->id),
             'statusTabs' => $urls,
             'activeStatus' => $status,
+            'counts' => $this->statusCounts($user->id, $urls),
+            'search' => $search,
         ]);
     }
 
@@ -131,7 +143,8 @@ class QuoteController extends Controller
 
         $quote->load('client', 'items');
 
-        $pdf = Pdf::loadView('pdf.quote', compact('quote'));
+        $pdf = Pdf::loadView('pdf.quote', compact('quote'))
+            ->setPaper('a4', 'portrait');
 
         return $pdf->download("{$quote->quote_number}.pdf");
     }
@@ -191,5 +204,17 @@ class QuoteController extends Controller
             'invoices' => Invoice::where('user_id', $userId)->count(),
             'paid' => Invoice::where('user_id', $userId)->where('status', 'paid')->count(),
         ];
+    }
+
+    protected function statusCounts(int $userId, array $statuses): array
+    {
+        $counts = [];
+        foreach ($statuses as $status) {
+            $counts[$status] = Quote::where('user_id', $userId)
+                ->when($status && $status !== 'all', fn($q) => $q->where('status', $status))
+                ->count();
+        }
+
+        return $counts;
     }
 }

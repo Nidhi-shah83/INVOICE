@@ -97,7 +97,28 @@
                 table-layout: fixed;
                 margin-bottom: 12px;
             }
+            /* force single page layout if possible */
+            .page {
+                width: 210mm;
+                min-height: 297mm;
+                padding: 14px;
+                page-break-after: avoid;
+                page-break-inside: avoid;
+            }
 
+            .logo-box,
+            .pair-table,
+            .meta-strip,
+            .items,
+            .summary {
+                page-break-inside: avoid;
+            }
+
+            td,
+            th {
+                font-size: 11px;
+                padding: 5px;
+            }
             .meta-strip th {
                 border: 1px solid #7f7f7f;
                 background: #d8d8d8;

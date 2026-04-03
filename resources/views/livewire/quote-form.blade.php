@@ -108,7 +108,7 @@
                             <th class="px-4 py-3 text-left font-semibold">Item</th>
                             <th class="px-4 py-3 text-left font-semibold">Qty</th>
                             <th class="px-4 py-3 text-left font-semibold">Rate</th>
-                            <th class="px-4 py-3 text-left font-semibold">GST%</th>
+                            <th class="px-4 py-3 text-left font-semibold">Discount %</th>
                             <th class="px-4 py-3 text-right font-semibold">Amount</th>
                             <th class="px-4 py-3 text-center font-semibold">Actions</th>
                         </tr>
@@ -139,14 +139,18 @@
 
                                 <td class="px-4 py-3">
                                     <input type="number"
+                                        wire:model="items.{{ $index }}.discount_percent"
+                                        data-discount-input
+                                        class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm">
+                                    <input type="hidden"
                                         wire:model="items.{{ $index }}.gst_percent"
                                         data-gst-input
-                                        class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm">
+                                    >
                                 </td>
 
                                 <td class="px-4 py-3 text-right">
                                     <span data-row-amount>
-                                        {{ $currencySymbol }}{{ number_format(($item['qty'] ?? 0) * ($item['rate'] ?? 0), 2) }}
+                                        {{ $currencySymbol }}{{ number_format(($item['qty'] ?? 0) * ($item['rate'] ?? 0) * (1 - (($item['discount_percent'] ?? 0) / 100)), 2) }}
                                     </span>
                                 </td>
 
@@ -404,15 +408,16 @@
                     const qty = parseFloat(row.querySelector('[data-qty-input]')?.value) || 0;
                     const rate = parseFloat(row.querySelector('[data-rate-input]')?.value) || 0;
                     const gstPercent = parseFloat(row.querySelector('[data-gst-input]')?.value) || 0;
-                    const taxable = qty * rate;
-                    const gstAmount = taxable * (gstPercent / 100);
-                    subtotal += taxable;
+                    const discountPercent = parseFloat(row.querySelector('[data-discount-input]')?.value) || 0;
+                    const taxableBase = qty * rate * (1 - Math.min(Math.max(discountPercent, 0), 100) / 100);
+                    const gstAmount = taxableBase * (gstPercent / 100);
+                    subtotal += taxableBase;
                     totalGst += gstAmount;
                     const rowAmountEl = row.querySelector('[data-row-amount]');
                     if (rowAmountEl) {
-                        rowAmountEl.textContent = formatCurrency(taxable);
+                        rowAmountEl.textContent = formatCurrency(taxableBase);
                     }
-                    row.dataset.totalValue = taxable.toFixed(2);
+                    row.dataset.totalValue = taxableBase.toFixed(2);
                 });
 
                 const businessState = summaryCard?.dataset.businessState?.trim() ?? '';
@@ -435,9 +440,9 @@
                 updateSummaryField('igst', igst);
                 updateSummaryField('grand', subtotal + totalGst);
                 if (summaryCard) {
-                    const cgstRow = summaryCard.querySelector('[data-summary-row="cgst"]');
-                    const sgstRow = summaryCard.querySelector('[data-summary-row="sgst"]');
-                    const igstRow = summaryCard.querySelector('[data-summary-row="igst"]');
+                const cgstRow = summaryCard.querySelector('[data-summary-row="cgst"]');
+                const sgstRow = summaryCard.querySelector('[data-summary-row="sgst"]');
+                const igstRow = summaryCard.querySelector('[data-summary-row="igst"]');
                     if (cgstRow) {
                         cgstRow.dataset.totalValue = cgst.toFixed(2);
                     }
@@ -461,7 +466,7 @@
 
             const itemsTable = document.querySelector('[data-quote-items-table]');
             itemsTable?.addEventListener('input', (event) => {
-                if (event.target.matches('[data-qty-input], [data-rate-input], [data-gst-input]')) {
+                if (event.target.matches('[data-qty-input], [data-rate-input], [data-gst-input], [data-discount-input]')) {
                     recalcTotals();
                 }
             });

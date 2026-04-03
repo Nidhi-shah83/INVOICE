@@ -268,7 +268,8 @@ class InvoiceController extends Controller
             return response()->file(Storage::disk('local')->path($invoice->pdf_path));
         }
 
-        $pdf = Pdf::loadView('pdf.invoice', compact('invoice'));
+        $pdf = Pdf::loadView('pdf.invoice', compact('invoice'))
+            ->setPaper('a4', 'portrait');
 
         return $pdf->download("{$invoice->invoice_number}.pdf");
     }
