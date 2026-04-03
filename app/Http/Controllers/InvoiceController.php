@@ -61,14 +61,24 @@ class InvoiceController extends Controller
 
     public function create(Request $request): View
     {
-        $prefill = session('invoice_draft');
+        $prefill = session('invoice_draft', []);
 
         if (! is_array($prefill) || $prefill === []) {
             $prefill = $this->decodeLegacyPrefill($request->query('prefill'));
         }
 
+        $userId = (int) $request->user()->id;
+
         return view('invoices.create', [
             'prefill' => is_array($prefill) ? $prefill : [],
+            'clients' => Client::query()
+                ->where('user_id', $userId)
+                ->orderBy('name')
+                ->get(),
+            'products' => \Illuminate\Support\Facades\DB::table('products')
+                ->where('user_id', $userId)
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -215,22 +225,6 @@ class InvoiceController extends Controller
             ->send(new InvoiceSentMail($invoice, $paymentLink, $pdf));
 
         return redirect()->route('invoices.show', $invoice)->with('status', 'Invoice sent.');
-    }
-
-    public function create(Request $request)
-    {
-        $prefill = $request->query('prefill');
-
-        return view('invoices.create', [
-            'prefill' => is_array($prefill) ? $prefill : [],
-        ]);
-    }
-
-    public function store(Request $request)
-    {
-        return redirect()
-            ->route('invoices.index')
-            ->with('error', 'Manual invoice creation is coming soon; we will persist drafts once the new workflow is wired.');
     }
 
     public function markPaid(Request $request, Invoice $invoice)
