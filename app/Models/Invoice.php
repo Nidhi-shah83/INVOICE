@@ -26,7 +26,6 @@ class Invoice extends Model
         'total',
         'notes',
         'pdf_path',
-        'payment_link',
         'discount_type',
         'discount_value',
         'discount_amount',
@@ -108,10 +107,10 @@ class Invoice extends Model
     protected function resolveCurrencySymbol(): string
     {
         $map = [
-            'INR' => '₹',
+            'INR' => 'Rs ',
             'USD' => '$',
-            'EUR' => '€',
-            'GBP' => '£',
+            'EUR' => 'EUR ',
+            'GBP' => 'GBP ',
         ];
 
         $currency = strtoupper($this->currency ?? '');
@@ -120,6 +119,6 @@ class Invoice extends Model
             return $map[$currency];
         }
 
-        return config('invoice.currency_symbol', '₹');
+        return config('invoice.currency_symbol', 'Rs ');
     }
 }
