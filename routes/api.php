@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Controllers\PaymentController;
 use App\Services\AIService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/payment/webhook', [PaymentController::class, 'webhook'])->name('payment.webhook');
 
 Route::prefix('n8n')
     ->middleware(['n8n.secret', 'throttle:n8n-user'])

@@ -386,6 +386,7 @@ class InvoiceService extends ModuleService
 
         $invoice->update([
             'status' => 'sent',
+            'razorpay_order_id' => $orderId,
             'payment_link' => $paymentLink,
             'pdf_path' => $path,
             'amount_due' => max(0, $grandTotal - (float) $invoice->amount_paid),
@@ -397,7 +398,7 @@ class InvoiceService extends ModuleService
 
         return [
             'path' => $path,
-            'order_id' => $razorpayOrder['id'],
+            'order_id' => $orderId,
             'link' => $paymentLink,
         ];
     }

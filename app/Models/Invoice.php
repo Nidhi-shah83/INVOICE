@@ -17,6 +17,8 @@ class Invoice extends Model
         'issue_date',
         'due_date',
         'status',
+        'payment_link',
+        'razorpay_order_id',
         'subtotal',
         'cgst',
         'sgst',

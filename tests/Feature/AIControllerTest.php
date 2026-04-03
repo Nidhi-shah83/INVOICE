@@ -21,7 +21,7 @@ class AIControllerTest extends TestCase
         $response->assertSee('Paste invoice text and prefill a draft invoice');
     }
 
-    public function test_parse_redirects_to_invoice_create_with_prefill_payload(): void
+    public function test_parse_redirects_to_invoice_create_and_stores_invoice_draft_in_session(): void
     {
         $user = User::factory()->create();
 
@@ -39,14 +39,11 @@ class AIControllerTest extends TestCase
             'text' => 'Vendor Acme Enterprises total 1500',
         ]);
 
-        $expectedPrefill = base64_encode(json_encode([
+        $response->assertRedirect(route('invoices.create', [], false));
+        $response->assertSessionHas('invoice_draft', [
             'client_name' => 'Acme Enterprises',
             'total' => 1500,
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-
-        $response->assertRedirect(route('invoices.create', [
-            'prefill' => $expectedPrefill,
-        ], false));
+        ]);
 
         Http::assertSent(function ($request): bool {
             return $request->url() === 'http://localhost:5678/webhook/parse-invoice'
