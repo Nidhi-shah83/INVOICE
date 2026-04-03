@@ -56,6 +56,75 @@
                     </button>
                 </form>
 
+                @if($order->remaining_amount > 0)
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            onclick="toggleConvertOptions()"
+                            class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-xs font-semibold text-white shadow-lg hover:bg-emerald-600 transition"
+                        >
+                            Convert to Invoice
+                        </button>
+                    </div>
+
+                    <div id="convert-options" class="hidden mt-4 p-4 bg-slate-50 rounded-2xl">
+                        <h4 class="text-sm font-semibold text-slate-900 mb-3">Choose Conversion Method</h4>
+
+                        <div class="space-y-3">
+                            <div>
+                                <h5 class="text-xs font-semibold text-slate-700 mb-2">Option 1: Convert All Remaining Items</h5>
+                                <form method="POST" action="{{ route('orders.createInvoice', $order) }}" onsubmit="return confirm('Create invoice for all remaining items (₹{{ number_format($order->remaining_amount, 2) }})?')">
+                                    @csrf
+                                    @foreach($order->items as $item)
+                                        @if($item->qty_remaining > 0)
+                                            <input type="hidden" name="items[{{ $loop->index }}][order_item_id]" value="{{ $item->id }}">
+                                            <input type="hidden" name="items[{{ $loop->index }}][qty]" value="{{ $item->qty_remaining }}">
+                                        @endif
+                                    @endforeach
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-end">
+                                        <label class="flex flex-col text-xs text-slate-600">
+                                            <span>Issue Date</span>
+                                            <input
+                                                type="date"
+                                                name="issue_date"
+                                                value="{{ now()->format('Y-m-d') }}"
+                                                class="mt-1 rounded-2xl border border-slate-200 px-3 py-1 text-sm"
+                                                required
+                                            >
+                                        </label>
+
+                                        <label class="flex flex-col text-xs text-slate-600">
+                                            <span>Due Date</span>
+                                            <input
+                                                type="date"
+                                                name="due_date"
+                                                value="{{ now()->addDays(15)->format('Y-m-d') }}"
+                                                class="mt-1 rounded-2xl border border-slate-200 px-3 py-1 text-sm"
+                                                required
+                                            >
+                                        </label>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-600">
+                                            Create Full Invoice
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <div>
+                                <h5 class="text-xs font-semibold text-slate-700 mb-2">Option 2: Select Specific Items</h5>
+                                <button
+                                    onclick="togglePartialBilling()"
+                                    class="inline-flex items-center gap-2 rounded-full bg-slate-500 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-600"
+                                >
+                                    Select Items Below
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <form method="POST" action="{{ route('orders.destroy', $order) }}">
                     @csrf
                     @method('DELETE')
@@ -63,6 +132,44 @@
                 </form>
             </div>
         </div>
+
+        @if($order->quote)
+            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <p class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-3">Quote Details</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Quote #</span>
+                        <p class="font-semibold text-slate-900">{{ $order->quote->quote_number }}</p>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Issue Date</span>
+                        <p class="font-semibold text-slate-900">{{ $order->quote->issue_date?->format('M d, Y') }}</p>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Validity Date</span>
+                        <p class="font-semibold text-slate-900">{{ $order->quote->validity_date?->format('M d, Y') }}</p>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Total</span>
+                        <p class="font-semibold text-slate-900">₹{{ number_format($order->quote->grand_total, 2) }}</p>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Payment Terms</span>
+                        <p class="font-semibold text-slate-900">{{ $order->quote->payment_terms ?? 'N/A' }}</p>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Salesperson</span>
+                        <p class="font-semibold text-slate-900">{{ $order->quote->salesperson ?? 'N/A' }}</p>
+                    </div>
+                </div>
+                @if($order->quote->notes)
+                    <div class="mt-4">
+                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Notes</span>
+                        <p class="text-sm text-slate-600 mt-1">{{ $order->quote->notes }}</p>
+                    </div>
+                @endif
+            </div>
+        @endif
 
         <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Order Items</p>
@@ -95,7 +202,18 @@
         </div>
 
         <div>
-            @livewire('partial-billing-form', ['order' => $order])
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-slate-900">Partial Billing</h3>
+                <button
+                    onclick="togglePartialBilling()"
+                    class="text-sm text-slate-600 hover:text-slate-900"
+                >
+                    <span id="partial-toggle-text">Show</span> Options
+                </button>
+            </div>
+            <div id="partial-billing-container" class="hidden">
+                @livewire('partial-billing-form', ['order' => $order])
+            </div>
         </div>
 
         @if($order->invoices->isNotEmpty())
@@ -202,6 +320,25 @@
                     });
                 },
             };
+        }
+
+        function toggleConvertOptions() {
+            const options = document.getElementById('convert-options');
+            options.classList.toggle('hidden');
+        }
+
+        function togglePartialBilling() {
+            const container = document.getElementById('partial-billing-container');
+            const toggleText = document.getElementById('partial-toggle-text');
+            const isHidden = container.classList.contains('hidden');
+
+            if (isHidden) {
+                container.classList.remove('hidden');
+                toggleText.textContent = 'Hide';
+            } else {
+                container.classList.add('hidden');
+                toggleText.textContent = 'Show';
+            }
         }
     </script>
 @endsection
