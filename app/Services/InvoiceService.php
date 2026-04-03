@@ -221,11 +221,13 @@ class InvoiceService extends ModuleService
         $path = 'invoices/'.$invoice->invoice_number.'.pdf';
         Storage::disk('local')->put($path, $pdf->output());
 
-        $razorpayOrder = $this->razorpayService->createOrder($invoice->total, 'INR', $invoice->invoice_number);
-        $paymentLink = $this->razorpayService->getCheckoutUrl($razorpayOrder['id']);
+        $paymentLinkResponse = $this->razorpayService->createPaymentLink($invoice);
+        $orderId = (string) ($paymentLinkResponse['id'] ?? '');
+        $paymentLink = (string) ($paymentLinkResponse['short_url'] ?? '');
 
         $invoice->update([
             'status' => 'sent',
+            'razorpay_order_id' => $orderId,
             'payment_link' => $paymentLink,
             'pdf_path' => $path,
         ]);
@@ -235,7 +237,7 @@ class InvoiceService extends ModuleService
 
         return [
             'path' => $path,
-            'order_id' => $razorpayOrder['id'],
+            'order_id' => $orderId,
             'link' => $paymentLink,
         ];
     }

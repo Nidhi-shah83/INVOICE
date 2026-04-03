@@ -36,7 +36,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('invoices/overdue', [InvoiceController::class, 'overdue'])->name('invoices.overdue');
     Route::patch('invoices/{invoice}/paid', [InvoiceController::class, 'markPaid'])->name('invoices.markPaid');
     Route::post('invoices/{invoice}/paid/manual', [InvoiceController::class, 'markPaidManually'])->name('invoices.markPaidManual');
-    Route::resource('ai-assistant', AiAssistantController::class)->parameters(['ai-assistant' => 'aiAssistant']);
     Route::get('ai-assistant', [AIController::class, 'chat'])->name('ai-assistant.index');
     Route::get('ai-assistant/chat', [AIController::class, 'chat'])->name('ai-assistant.chat');
     Route::post('ai-assistant/parse', [AIController::class, 'parse'])->name('ai-assistant.parse');
@@ -47,5 +46,8 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+Route::view('/payment-success', 'payments.success')->name('payment.success');
+
 Route::get('quotes/accept/{token}', [QuoteController::class, 'accept'])->name('quotes.accept');
 require __DIR__.'/auth.php';

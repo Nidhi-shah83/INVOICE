@@ -4,18 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Mail\InvoiceSentMail;
 use App\Mail\PaymentConfirmedMail;
+use App\Models\Client;
 use App\Models\Invoice;
 use App\Services\InvoiceService;
+use App\Services\RazorpayService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 
 class InvoiceController extends Controller
 {
     protected array $statusTabs = ['draft', 'sent', 'paid', 'cancelled'];
 
-    public function __construct(protected InvoiceService $service)
+    public function __construct(
+        protected InvoiceService $service,
+        protected RazorpayService $razorpayService,
+    )
     {
         $this->middleware('auth')->except(['overdue', 'markPaid']);
     }
@@ -49,6 +59,115 @@ class InvoiceController extends Controller
         ]);
     }
 
+    public function create(Request $request): View
+    {
+        $prefill = session('invoice_draft');
+
+        if (! is_array($prefill) || $prefill === []) {
+            $prefill = $this->decodeLegacyPrefill($request->query('prefill'));
+        }
+
+        return view('invoices.create', [
+            'prefill' => is_array($prefill) ? $prefill : [],
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'vendor_name' => ['required', 'string', 'max:255'],
+            'gstin' => ['nullable', 'string', 'max:15'],
+            'invoice_number' => ['nullable', 'string', 'max:255', Rule::unique('invoices', 'invoice_number')],
+            'date' => ['required', 'date'],
+            'total_amount' => ['nullable', 'numeric', 'gte:0'],
+            'notes' => ['nullable', 'string'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.name' => ['required', 'string', 'max:255'],
+            'items.*.quantity' => ['required', 'numeric', 'gt:0'],
+            'items.*.rate' => ['required', 'numeric', 'gte:0'],
+            'items.*.amount' => ['nullable', 'numeric', 'gte:0'],
+            'action' => ['nullable', Rule::in(['draft', 'final'])],
+        ]);
+
+        $user = $request->user();
+        $status = ($data['action'] ?? 'final') === 'draft' ? 'draft' : 'final';
+        $persistedStatus = $status === 'draft'
+            ? 'draft'
+            : (in_array('final', $this->statusTabs, true) ? 'final' : 'sent');
+
+        $items = collect($data['items'])
+            ->map(function (array $item): array {
+                $quantity = (float) $item['quantity'];
+                $rate = (float) $item['rate'];
+                $lineAmount = array_key_exists('amount', $item) && $item['amount'] !== null
+                    ? (float) $item['amount']
+                    : $quantity * $rate;
+
+                return [
+                    'name' => trim((string) ($item['name'] ?? '')),
+                    'quantity' => $quantity,
+                    'rate' => $rate,
+                    'amount' => $lineAmount,
+                ];
+            })
+            ->filter(fn (array $item): bool => $item['name'] !== '' && $item['quantity'] > 0)
+            ->values();
+
+        if ($items->isEmpty()) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'items' => 'Please add at least one valid item.',
+                ]);
+        }
+
+        $client = $this->resolveClient(
+            userId: $user->id,
+            vendorName: trim((string) $data['vendor_name']),
+            gstin: isset($data['gstin']) ? strtoupper(trim((string) $data['gstin'])) : null,
+        );
+
+        $subtotal = (float) $items->sum('amount');
+        $total = array_key_exists('total_amount', $data) && $data['total_amount'] !== null
+            ? (float) $data['total_amount']
+            : $subtotal;
+        $issueDate = $data['date'];
+        $dueDate = Carbon::parse($issueDate)
+            ->addDays((int) config('invoice.default_due_days', 15))
+            ->toDateString();
+
+        $invoice = Invoice::create([
+            'user_id' => $user->id,
+            'client_id' => $client->id,
+            'invoice_number' => $data['invoice_number'] ?: $this->service->generateInvoiceNumber($user->id),
+            'issue_date' => $issueDate,
+            'due_date' => $dueDate,
+            'status' => $persistedStatus,
+            'subtotal' => $subtotal,
+            'cgst' => 0,
+            'sgst' => 0,
+            'igst' => 0,
+            'total' => $total,
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        foreach ($items as $item) {
+            $invoice->items()->create([
+                'name' => $item['name'],
+                'qty_billed' => $item['quantity'],
+                'rate' => $item['rate'],
+                'gst_percent' => 0,
+                'amount' => $item['amount'],
+            ]);
+        }
+
+        $request->session()->forget('invoice_draft');
+
+        return redirect()
+            ->route('invoices.show', $invoice)
+            ->with('status', $status === 'draft' ? 'Invoice saved as draft.' : 'Invoice saved as final.');
+    }
+
     public function show(Invoice $invoice)
     {
         $this->authorizeInvoice($invoice);
@@ -75,7 +194,25 @@ class InvoiceController extends Controller
     {
         $this->authorizeInvoice($invoice);
 
-        $this->service->sendInvoice($invoice);
+        $invoice->load('client');
+
+        $pdf = Pdf::loadView('pdf.invoice', compact('invoice'));
+        $path = 'invoices/'.$invoice->invoice_number.'.pdf';
+        Storage::disk('local')->put($path, $pdf->output());
+
+        $paymentLinkResponse = $this->razorpayService->createPaymentLink($invoice);
+        $orderId = (string) ($paymentLinkResponse['id'] ?? '');
+        $paymentLink = (string) ($paymentLinkResponse['short_url'] ?? '');
+
+        $invoice->update([
+            'status' => 'sent',
+            'razorpay_order_id' => $orderId,
+            'payment_link' => $paymentLink,
+            'pdf_path' => $path,
+        ]);
+
+        Mail::to($invoice->client->email)
+            ->send(new InvoiceSentMail($invoice, $paymentLink, $pdf));
 
         return redirect()->route('invoices.show', $invoice)->with('status', 'Invoice sent.');
     }
@@ -115,6 +252,56 @@ class InvoiceController extends Controller
         $this->ensureApiSecret($request);
 
         return response()->json($this->service->overdueInvoices());
+    }
+
+    protected function decodeLegacyPrefill(?string $encoded): array
+    {
+        if (! is_string($encoded) || $encoded === '') {
+            return [];
+        }
+
+        $decoded = base64_decode($encoded, true);
+        if ($decoded === false) {
+            return [];
+        }
+
+        $payload = json_decode($decoded, true);
+
+        return is_array($payload) ? $payload : [];
+    }
+
+    protected function resolveClient(int $userId, string $vendorName, ?string $gstin = null): Client
+    {
+        $clientQuery = Client::where('user_id', $userId);
+
+        if ($gstin) {
+            $existingByGstin = (clone $clientQuery)->where('gstin', $gstin)->first();
+            if ($existingByGstin) {
+                return $existingByGstin;
+            }
+        }
+
+        $existingByName = (clone $clientQuery)->where('name', $vendorName)->first();
+        if ($existingByName) {
+            if ($gstin && ! $existingByName->gstin) {
+                $existingByName->update(['gstin' => $gstin]);
+            }
+
+            return $existingByName;
+        }
+
+        $slug = Str::slug($vendorName ?: 'vendor');
+        $token = now()->format('YmdHis');
+
+        return Client::create([
+            'user_id' => $userId,
+            'name' => $vendorName,
+            'email' => "{$slug}-{$token}@example.com",
+            'phone' => 'N/A',
+            'gstin' => $gstin,
+            'state' => (string) config('invoice.state', 'Karnataka'),
+            'address' => 'N/A',
+        ]);
     }
 
     protected function authorizeInvoice(Invoice $invoice): void

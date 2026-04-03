@@ -38,10 +38,8 @@ class AIController extends Controller
                 ]);
         }
 
-        $encoded = base64_encode(json_encode($prefill, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $request->session()->put('invoice_draft', is_array($prefill) ? $prefill : []);
 
-        return redirect()->route('invoices.create', [
-            'prefill' => $encoded,
-        ]);
+        return redirect()->route('invoices.create');
     }
 }
