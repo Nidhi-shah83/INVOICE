@@ -123,6 +123,57 @@
             }
         @endphp
 
+        <script>
+            window.notifyToast = function ({ icon = 'success', title = '', text = '' } = {}) {
+                if (!window.Swal) {
+                    return;
+                }
+
+                Swal.fire({
+                    icon,
+                    title,
+                    text,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2500,
+                    timerProgressBar: true,
+                });
+            };
+
+            window.addEventListener('app:toast', (event) => {
+                window.notifyToast(event.detail || {});
+            });
+
+            document.addEventListener('submit', (event) => {
+                if (event.defaultPrevented) {
+                    return;
+                }
+
+                const form = event.target;
+                if (!(form instanceof HTMLFormElement)) {
+                    return;
+                }
+
+                if (form.dataset.preventDoubleSubmit === 'false') {
+                    return;
+                }
+
+                const button = form.querySelector('button[type=\"submit\"], input[type=\"submit\"]');
+                if (!button || button.disabled) {
+                    return;
+                }
+
+                button.disabled = true;
+
+                const loadingText = button.dataset.loadingText;
+                if (loadingText && button.tagName.toLowerCase() === 'button') {
+                    button.dataset.originalText = button.innerHTML;
+                    button.innerHTML = loadingText;
+                }
+            });
+        </script>
+
         @if ($validationErrors)
             <script>
                 Swal.fire({
@@ -134,11 +185,10 @@
             </script>
         @elseif ($alertMessage)
             <script>
-                Swal.fire({
+                window.notifyToast({
                     icon: '{{ $alertIcon }}',
                     title: @json($alertTitle),
                     text: @json(__($alertMessage)),
-                    confirmButtonText: 'OK'
                 });
             </script>
         @endif

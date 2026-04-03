@@ -3,7 +3,13 @@
 @section('page-title', $order->order_number)
 
 @section('content')
-    <div class="space-y-6">
+    <div
+        class="space-y-6"
+        x-data="orderStatusManager({
+            initialStatus: @js($order->status),
+            updateUrl: @js(route('orders.updateStatus', $order)),
+        })"
+    >
         @if(session('status'))
             <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700">
                 {{ session('status') }}
@@ -25,15 +31,28 @@
             </div>
 
             <div class="mt-6 flex flex-wrap items-center gap-3">
-                <form class="flex flex-wrap gap-2" method="POST" action="{{ route('orders.updateStatus', $order) }}">
+                <form class="flex flex-wrap gap-2" method="POST" action="{{ route('orders.updateStatus', $order) }}" @submit.prevent="confirmAndUpdate">
                     @csrf
-                    <select name="status" class="rounded-2xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    <select
+                        name="status"
+                        x-model="selectedStatus"
+                        :disabled="isSubmitting"
+                        class="rounded-2xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-60"
+                    >
                         @foreach(['confirmed','in_progress','partially_billed','fulfilled','fully_billed','cancelled'] as $status)
                             <option value="{{ $status }}" @selected($order->status === $status)>{{ ucfirst(str_replace('_', ' ', $status)) }}</option>
                         @endforeach
                     </select>
-                    <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-lg hover:bg-slate-800 transition">
-                        Update status
+                    <button
+                        type="submit"
+                        class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-lg hover:bg-slate-800 transition disabled:cursor-not-allowed disabled:opacity-70"
+                        :disabled="isSubmitting || selectedStatus === currentStatus"
+                    >
+                        <svg x-show="isSubmitting" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" opacity="0.25"></circle>
+                            <path d="M22 12a10 10 0 0 0-10-10"></path>
+                        </svg>
+                        <span x-text="isSubmitting ? 'Updating...' : 'Update status'"></span>
                     </button>
                 </form>
 
@@ -99,8 +118,8 @@
                                 <tr>
                                     <td class="px-4 py-3 font-semibold text-slate-800">{{ $invoice->invoice_number }}</td>
                                     <td class="px-4 py-3">
-                                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $invoice->status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
-                                            {{ ucfirst($invoice->status) }}
+                                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $invoice->payment_status === 'paid' ? 'bg-emerald-100 text-emerald-700' : ($invoice->payment_status === 'partial' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700') }}">
+                                            {{ ucfirst($invoice->payment_status) }}
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-right font-semibold text-slate-900">₹{{ number_format($invoice->total, 2) }}</td>
@@ -117,4 +136,72 @@
             </div>
         @endif
     </div>
+
+    <script>
+        function orderStatusManager({ initialStatus, updateUrl }) {
+            return {
+                currentStatus: initialStatus,
+                selectedStatus: initialStatus,
+                updateUrl,
+                isSubmitting: false,
+                async confirmAndUpdate() {
+                    if (this.isSubmitting || this.selectedStatus === this.currentStatus) {
+                        return;
+                    }
+
+                    const readable = this.selectedStatus.replace(/_/g, ' ');
+                    const result = await Swal.fire({
+                        title: 'Change order status?',
+                        text: `Set this order to "${readable}"?`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, update it',
+                        cancelButtonText: 'Cancel',
+                    });
+
+                    if (!result.isConfirmed) {
+                        this.selectedStatus = this.currentStatus;
+                        return;
+                    }
+
+                    this.isSubmitting = true;
+
+                    try {
+                        await window.axios.post(this.updateUrl, {
+                            status: this.selectedStatus,
+                        }, {
+                            headers: {
+                                Accept: 'application/json',
+                            },
+                        });
+
+                        this.currentStatus = this.selectedStatus;
+                        this.toast('success', 'Order status updated.');
+                    } catch (error) {
+                        this.selectedStatus = this.currentStatus;
+                        const message = error?.response?.data?.message || 'Unable to update order status.';
+                        this.toast('error', message);
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                },
+                toast(icon, title) {
+                    if (window.notifyToast) {
+                        window.notifyToast({ icon, title });
+                        return;
+                    }
+
+                    Swal.fire({
+                        icon,
+                        title,
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 2500,
+                        timerProgressBar: true,
+                    });
+                },
+            };
+        }
+    </script>
 @endsection

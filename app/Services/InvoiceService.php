@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Mail\InvoiceSentMail;
 use App\Mail\OrderConfirmedMail;
+use App\Mail\PaymentConfirmedMail;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\Order;
@@ -222,7 +223,12 @@ class InvoiceService extends ModuleService
         $calculatedRoundOff = round($calculatedRoundOff, 2);
 
         $grandTotal = round($total + $calculatedRoundOff, 2);
-        $amountPaid = max(0, $amountPaid);
+        $amountPaid = round(max(0, $amountPaid), 2);
+
+        if ($grandTotal > 0) {
+            $amountPaid = min($amountPaid, $grandTotal);
+        }
+
         $amountDue = round(max(0, $grandTotal - $amountPaid), 2);
         $paymentStatus = $this->resolvePaymentStatus($amountPaid, $grandTotal);
 
@@ -379,7 +385,6 @@ class InvoiceService extends ModuleService
         $path = 'invoices/'.$invoice->invoice_number.'.pdf';
         Storage::disk('local')->put($path, $pdf->output());
 
-        $grandTotal = (float) $invoice->grand_total;
         // ===== Razorpay Integration (Production Only) =====
         // This code is disabled for demo without KYC
         // Uncomment when using real payments
@@ -390,14 +395,19 @@ class InvoiceService extends ModuleService
         $orderId = null;
         $paymentLink = route('invoices.pay', $invoice->id);
 
+        $status = $this->resolveInvoiceStatus((string) $invoice->status, (string) $invoice->payment_status);
+        if ($status !== 'paid' && $status !== 'cancelled') {
+            $status = 'sent';
+        }
+
         $invoice->update([
-            'status' => 'sent',
+            'status' => $status,
             'razorpay_order_id' => $orderId,
             'payment_link' => $paymentLink,
             'pdf_path' => $path,
-            'amount_due' => max(0, $grandTotal - (float) $invoice->amount_paid),
-            'payment_status' => $this->resolvePaymentStatus((float) $invoice->amount_paid, $grandTotal),
         ]);
+
+        $invoice = $this->syncInvoicePaymentState($invoice);
 
         Mail::to($invoice->client->email)
             ->send(new InvoiceSentMail($invoice, $paymentLink, $pdf));
@@ -411,27 +421,57 @@ class InvoiceService extends ModuleService
 
     public function markInvoicePaid(Invoice $invoice, float $amount, string $paymentId, string $orderId): Payment
     {
-        $due = max(0, $invoice->grand_total - $invoice->amount_paid);
-        $captureAmount = min(max(0, $amount), $due);
+        return DB::transaction(function () use ($invoice, $amount, $paymentId, $orderId): Payment {
+            $lockedInvoice = Invoice::query()
+                ->with('client')
+                ->lockForUpdate()
+                ->findOrFail($invoice->id);
 
-        if ($captureAmount <= 0) {
-            throw new \InvalidArgumentException('No outstanding amount remains for this invoice.');
+            $existingPayment = Payment::where('razorpay_payment_id', $paymentId)->first();
+            if ($existingPayment) {
+                return $existingPayment;
+            }
+
+            $grandTotal = $this->resolveInvoiceGrandTotal($lockedInvoice);
+            $due = round(max(0, $grandTotal - (float) $lockedInvoice->amount_paid), 2);
+            $captureAmount = min(round(max(0, $amount), 2), $due);
+
+            if ($captureAmount <= 0) {
+                throw new \InvalidArgumentException('No outstanding amount remains for this invoice.');
+            }
+
+            $payment = Payment::create([
+                'invoice_id' => $lockedInvoice->id,
+                'razorpay_payment_id' => $paymentId,
+                'razorpay_order_id' => $orderId,
+                'amount' => $captureAmount,
+                'status' => 'captured',
+            ]);
+
+            $lockedInvoice = $this->recalculatePaymentStateFromLedger($lockedInvoice);
+
+            if (! empty($lockedInvoice->client?->email)) {
+                Mail::to($lockedInvoice->client->email)
+                    ->send(new PaymentConfirmedMail($lockedInvoice, $payment));
+            }
+
+            return $payment;
+        });
+    }
+
+    public function markInvoiceAsPaid(Invoice $invoice, ?string $paymentId = null, ?string $orderId = null): Payment
+    {
+        $invoice = $this->syncInvoicePaymentState($invoice);
+        $due = round(max(0, (float) $invoice->amount_due), 2);
+
+        if ($due <= 0) {
+            throw new \InvalidArgumentException('This invoice is already fully paid.');
         }
 
-        $payment = Payment::create([
-            'invoice_id' => $invoice->id,
-            'razorpay_payment_id' => $paymentId,
-            'razorpay_order_id' => $orderId,
-            'amount' => $captureAmount,
-            'status' => 'captured',
-        ]);
+        $paymentId = $paymentId ?: 'manual_'.$invoice->id.'_'.Str::uuid()->toString();
+        $orderId = $orderId ?: (string) ($invoice->razorpay_order_id ?: $invoice->invoice_number);
 
-        $invoice = $this->applyPayment($invoice, $captureAmount);
-
-        Mail::to($invoice->client->email)
-            ->send(new PaymentConfirmedMail($invoice, $payment));
-
-        return $payment;
+        return $this->markInvoicePaid($invoice, $due, $paymentId, $orderId);
     }
 
     public function overdueInvoices()
@@ -454,19 +494,26 @@ class InvoiceService extends ModuleService
     public function applyPayment(Invoice $invoice, float $amount): Invoice
     {
         $amount = max(0, $amount);
-        $due = max(0, $invoice->grand_total - $invoice->amount_paid);
+        $grandTotal = $this->resolveInvoiceGrandTotal($invoice);
+        $due = round(max(0, $grandTotal - (float) $invoice->amount_paid), 2);
         $applied = min($amount, $due);
 
         if ($applied <= 0) {
             return $invoice;
         }
 
-        $amountPaid = round($invoice->amount_paid + $applied, 2);
-        $amountDue = round(max(0, $invoice->grand_total - $amountPaid), 2);
-        $paymentStatus = $this->resolvePaymentStatus($amountPaid, $invoice->grand_total);
-        $status = $paymentStatus === 'paid' ? 'paid' : ($invoice->status === 'draft' ? 'sent' : $invoice->status);
+        $amountPaid = round((float) $invoice->amount_paid + $applied, 2);
+
+        if ($grandTotal > 0) {
+            $amountPaid = min($amountPaid, $grandTotal);
+        }
+
+        $amountDue = round(max(0, $grandTotal - $amountPaid), 2);
+        $paymentStatus = $this->resolvePaymentStatus($amountPaid, $grandTotal);
+        $status = $this->resolveInvoiceStatus($invoice->status, $paymentStatus);
 
         $invoice->update([
+            'grand_total' => $grandTotal,
             'amount_paid' => $amountPaid,
             'amount_due' => $amountDue,
             'payment_status' => $paymentStatus,
@@ -476,13 +523,92 @@ class InvoiceService extends ModuleService
         return $invoice->refresh();
     }
 
-    protected function resolvePaymentStatus(float $amountPaid, float $grandTotal): string
+    public function syncInvoicePaymentState(Invoice $invoice): Invoice
     {
-        if ($grandTotal <= 0) {
-            return $amountPaid > 0 ? 'paid' : 'unpaid';
+        $grandTotal = $this->resolveInvoiceGrandTotal($invoice);
+        $amountPaid = round(max(0, (float) $invoice->amount_paid), 2);
+
+        if ($grandTotal > 0) {
+            $amountPaid = min($amountPaid, $grandTotal);
         }
 
-        if ($amountPaid <= 0) {
+        $amountDue = round(max(0, $grandTotal - $amountPaid), 2);
+        $paymentStatus = $this->resolvePaymentStatus($amountPaid, $grandTotal);
+        $status = $this->resolveInvoiceStatus((string) $invoice->status, $paymentStatus);
+
+        $invoice->update([
+            'grand_total' => $grandTotal,
+            'amount_paid' => $amountPaid,
+            'amount_due' => $amountDue,
+            'payment_status' => $paymentStatus,
+            'status' => $status,
+        ]);
+
+        return $invoice->refresh();
+    }
+
+    public function paymentSummary(Invoice $invoice): array
+    {
+        $invoice = $this->syncInvoicePaymentState($invoice);
+
+        return [
+            'id' => $invoice->id,
+            'status' => $invoice->status,
+            'payment_status' => $invoice->payment_status,
+            'amount_paid' => (float) $invoice->amount_paid,
+            'amount_due' => (float) $invoice->amount_due,
+            'grand_total' => (float) $invoice->grand_total,
+        ];
+    }
+
+    protected function recalculatePaymentStateFromLedger(Invoice $invoice): Invoice
+    {
+        $paidTotal = round((float) $invoice->payments()
+            ->where('status', 'captured')
+            ->sum('amount'), 2);
+
+        $invoice->amount_paid = $paidTotal;
+
+        return $this->syncInvoicePaymentState($invoice);
+    }
+
+    protected function resolveInvoiceGrandTotal(Invoice $invoice): float
+    {
+        $grandTotal = round((float) ($invoice->grand_total ?? 0), 2);
+        if ($grandTotal > 0) {
+            return $grandTotal;
+        }
+
+        return round(max(0, (float) ($invoice->total ?? 0)), 2);
+    }
+
+    protected function resolveInvoiceStatus(string $currentStatus, string $paymentStatus): string
+    {
+        if ($currentStatus === 'cancelled') {
+            return $currentStatus;
+        }
+
+        if ($paymentStatus === 'paid') {
+            return 'paid';
+        }
+
+        if ($currentStatus === 'draft') {
+            return 'draft';
+        }
+
+        if ($currentStatus === 'paid') {
+            return 'sent';
+        }
+
+        return $currentStatus !== '' ? $currentStatus : 'sent';
+    }
+
+    protected function resolvePaymentStatus(float $amountPaid, float $grandTotal): string
+    {
+        $amountPaid = round(max(0, $amountPaid), 2);
+        $grandTotal = round(max(0, $grandTotal), 2);
+
+        if ($amountPaid === 0.0) {
             return 'unpaid';
         }
 

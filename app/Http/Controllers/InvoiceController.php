@@ -2,19 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\InvoiceSentMail;
-use App\Mail\PaymentConfirmedMail;
-use App\Mail\PaymentSuccessMail;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Services\InvoiceService;
-use App\Services\RazorpayService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
@@ -25,7 +22,6 @@ class InvoiceController extends Controller
 
     public function __construct(
         protected InvoiceService $service,
-        protected RazorpayService $razorpayService,
     )
     {
         $this->middleware('auth')->except(['overdue', 'markPaid', 'showPaymentPage', 'processPayment']);
@@ -34,9 +30,25 @@ class InvoiceController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $status = $request->query('status');
+        $status = (string) $request->query('status', '');
+        $search = trim((string) $request->query('search', ''));
 
-        $query = Invoice::with('client')->where('user_id', $user->id);
+        $baseQuery = Invoice::query()
+            ->with('client')
+            ->where('user_id', $user->id);
+
+        if ($search !== '') {
+            $baseQuery->where(function ($builder) use ($search) {
+                $builder->where('invoice_number', 'like', "%{$search}%")
+                    ->orWhereHas('client', function ($clientQuery) use ($search) {
+                        $clientQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $query = clone $baseQuery;
 
         if ($status && $status !== 'all') {
             if ($status === 'overdue') {
@@ -46,17 +58,70 @@ class InvoiceController extends Controller
             }
         }
 
-        $counts = collect($this->statusTabs)
-            ->mapWithKeys(fn ($tab) => [$tab => Invoice::where('user_id', $user->id)->where('status', $tab)->count()])
-            ->toArray();
+        $counts = [
+            'all' => (clone $baseQuery)->count(),
+            'draft' => (clone $baseQuery)->where('status', 'draft')->count(),
+            'sent' => (clone $baseQuery)->where('status', 'sent')->count(),
+            'paid' => (clone $baseQuery)->where('status', 'paid')->count(),
+            'cancelled' => (clone $baseQuery)->where('status', 'cancelled')->count(),
+            'overdue' => (clone $baseQuery)->where('status', 'sent')->whereDate('due_date', '<', now()->toDateString())->count(),
+        ];
 
         $invoices = $query->orderByDesc('created_at')->paginate(10);
 
         return view('invoices.index', [
             'invoices' => $invoices,
             'statusTabs' => array_merge(['all'], $this->statusTabs, ['overdue']),
-            'activeStatus' => $status,
+            'activeStatus' => $status !== '' ? $status : 'all',
+            'search' => $search,
             'counts' => $counts,
+        ]);
+    }
+
+    public function searchSuggestions(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $term = trim((string) ($data['q'] ?? ''));
+        if (strlen($term) < 2) {
+            return response()->json([
+                'suggestions' => [],
+            ]);
+        }
+
+        $userId = (int) $request->user()->id;
+
+        $invoices = Invoice::query()
+            ->with('client:id,name,email,phone')
+            ->where('user_id', $userId)
+            ->where(function ($builder) use ($term) {
+                $builder->where('invoice_number', 'like', "%{$term}%")
+                    ->orWhereHas('client', function ($clientQuery) use ($term) {
+                        $clientQuery->where('name', 'like', "%{$term}%")
+                            ->orWhere('email', 'like', "%{$term}%")
+                            ->orWhere('phone', 'like', "%{$term}%");
+                    });
+            })
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get();
+
+        $suggestions = $invoices->map(function (Invoice $invoice): array {
+            return [
+                'id' => $invoice->id,
+                'invoice_number' => (string) $invoice->invoice_number,
+                'client_name' => (string) ($invoice->client?->name ?? 'Unknown client'),
+                'client_email' => (string) ($invoice->client?->email ?? ''),
+                'payment_status' => (string) $invoice->payment_status,
+                'amount_due' => (float) $invoice->amount_due,
+                'url' => route('invoices.show', $invoice),
+            ];
+        })->values();
+
+        return response()->json([
+            'suggestions' => $suggestions,
         ]);
     }
 
@@ -101,10 +166,8 @@ class InvoiceController extends Controller
         ]);
 
         $user = $request->user();
-        $status = ($data['action'] ?? 'final') === 'draft' ? 'draft' : 'final';
-        $persistedStatus = $status === 'draft'
-            ? 'draft'
-            : (in_array('final', $this->statusTabs, true) ? 'final' : 'sent');
+        $isDraft = ($data['action'] ?? 'final') === 'draft';
+        $persistedStatus = $isDraft ? 'draft' : 'sent';
 
         $items = collect($data['items'])
             ->map(function (array $item): array {
@@ -139,9 +202,10 @@ class InvoiceController extends Controller
         );
 
         $subtotal = (float) $items->sum('amount');
-        $total = array_key_exists('total_amount', $data) && $data['total_amount'] !== null
+        $grandTotal = array_key_exists('total_amount', $data) && $data['total_amount'] !== null
             ? (float) $data['total_amount']
             : $subtotal;
+        $roundOff = round($grandTotal - $subtotal, 2);
         $issueDate = $data['date'];
         $dueDate = Carbon::parse($issueDate)
             ->addDays((int) config('invoice.default_due_days', 15))
@@ -158,7 +222,13 @@ class InvoiceController extends Controller
             'cgst' => 0,
             'sgst' => 0,
             'igst' => 0,
-            'total' => $total,
+            'total' => $grandTotal,
+            'round_off' => $roundOff,
+            'grand_total' => $grandTotal,
+            'amount_paid' => 0,
+            'amount_due' => $grandTotal,
+            'payment_status' => 'unpaid',
+            'currency' => config('invoice.currency', 'INR'),
             'notes' => $data['notes'] ?? null,
         ]);
 
@@ -172,11 +242,13 @@ class InvoiceController extends Controller
             ]);
         }
 
+        $invoice = $this->service->syncInvoicePaymentState($invoice);
+
         $request->session()->forget('invoice_draft');
 
         return redirect()
             ->route('invoices.show', $invoice)
-            ->with('status', $status === 'draft' ? 'Invoice saved as draft.' : 'Invoice saved as final.');
+            ->with('status', $isDraft ? 'Invoice saved as draft.' : 'Invoice saved as final.');
     }
 
     public function show(Invoice $invoice)
@@ -205,30 +277,7 @@ class InvoiceController extends Controller
     {
         $this->authorizeInvoice($invoice);
 
-        $invoice->load('client');
-
-        $pdf = Pdf::loadView('pdf.invoice', compact('invoice'));
-        $path = 'invoices/'.$invoice->invoice_number.'.pdf';
-        Storage::disk('local')->put($path, $pdf->output());
-
-        // ===== Razorpay Integration (Production Only) =====
-        // This code is disabled for demo without KYC
-        // Uncomment when using real payments
-        // $paymentLinkResponse = $this->razorpayService->createPaymentLink($invoice);
-        // $orderId = (string) ($paymentLinkResponse['id'] ?? '');
-        // $paymentLink = (string) ($paymentLinkResponse['short_url'] ?? '');
-        $orderId = null;
-        $paymentLink = route('invoices.pay', $invoice->id);
-
-        $invoice->update([
-            'status' => 'sent',
-            'razorpay_order_id' => $orderId,
-            'payment_link' => $paymentLink,
-            'pdf_path' => $path,
-        ]);
-
-        Mail::to($invoice->client->email)
-            ->send(new InvoiceSentMail($invoice, $paymentLink, $pdf));
+        $this->service->sendInvoice($invoice);
 
         return redirect()->route('invoices.show', $invoice)->with('status', 'Invoice sent.');
     }
@@ -243,16 +292,18 @@ class InvoiceController extends Controller
     public function processPayment(Request $request, $id): RedirectResponse
     {
         $invoice = Invoice::with('client')->findOrFail($id);
-        $amountPaid = (float) ($invoice->grand_total ?? $invoice->total ?? 0);
+        $amount = 0.0;
 
-        $invoice->status = 'paid';
-        $invoice->payment_status = 'paid';
-        $invoice->amount_paid = $amountPaid;
-        $invoice->amount_due = 0;
-        $invoice->save();
-
-        if (! empty($invoice->client?->email)) {
-            Mail::to($invoice->client->email)->send(new PaymentSuccessMail($invoice));
+        try {
+            $payment = $this->service->markInvoiceAsPaid(
+                $invoice,
+                'demo_'.$invoice->id.'_'.Str::uuid()->toString(),
+                (string) ($invoice->razorpay_order_id ?: $invoice->invoice_number),
+            );
+            $amount = (float) $payment->amount;
+        } catch (\InvalidArgumentException) {
+            $invoice = $this->service->syncInvoicePaymentState($invoice);
+            $amount = (float) $invoice->amount_paid;
         }
 
         return redirect()
@@ -260,38 +311,28 @@ class InvoiceController extends Controller
             ->with('payment_success', [
                 'invoice_id' => $invoice->id,
                 'invoice_number' => $invoice->invoice_number,
-                'amount' => $amountPaid,
+                'amount' => $amount,
             ]);
     }
 
-    public function markPaid(Request $request, Invoice $invoice)
+    public function markPaid(Request $request, Invoice $invoice): JsonResponse
     {
         $this->ensureApiSecret($request);
 
-        $data = $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-            'payment_id' => 'required|string',
-            'order_id' => 'required|string',
-        ]);
-
-        $this->service->markInvoicePaid($invoice, $data['amount'], $data['payment_id'], $data['order_id']);
-
-        return response()->json(['status' => 'ok']);
+        return $this->recordPaymentAndRespond($request, $invoice);
     }
 
     public function markPaidManually(Request $request, Invoice $invoice)
     {
         $this->authorizeInvoice($invoice);
 
-        $data = $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-            'payment_id' => 'required|string',
-            'order_id' => 'required|string',
-        ]);
+        if ($request->expectsJson()) {
+            return $this->recordPaymentAndRespond($request, $invoice);
+        }
 
-        $this->service->markInvoicePaid($invoice, $data['amount'], $data['payment_id'], $data['order_id']);
+        $this->recordPaymentAndRespond($request, $invoice);
 
-        return redirect()->route('invoices.show', $invoice)->with('status', 'Payment recorded and invoice marked as paid.');
+        return redirect()->route('invoices.show', $invoice)->with('status', 'Payment recorded successfully.');
     }
 
     public function overdue(Request $request)
@@ -361,9 +402,50 @@ class InvoiceController extends Controller
     protected function ensureApiSecret(Request $request): void
     {
         $secret = $request->header('X-N8N-Secret');
-        $configured = config('invoice.overdue_secret');
-        if (! hash_equals($configured, $secret ?? '')) {
+        $configured = (string) config('invoice.overdue_secret', '');
+        if ($configured === '' || ! hash_equals($configured, $secret ?? '')) {
             abort(401);
         }
+    }
+
+    protected function recordPaymentAndRespond(Request $request, Invoice $invoice): JsonResponse
+    {
+        $invoice = $this->service->syncInvoicePaymentState($invoice);
+
+        $data = $request->validate([
+            'amount' => ['nullable', 'numeric', 'min:0.01'],
+            'payment_id' => ['nullable', 'string', 'max:255'],
+            'order_id' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $amount = array_key_exists('amount', $data) && $data['amount'] !== null
+            ? (float) $data['amount']
+            : (float) $invoice->amount_due;
+        $paymentId = isset($data['payment_id']) && $data['payment_id'] !== ''
+            ? trim((string) $data['payment_id'])
+            : 'manual_'.$invoice->id.'_'.Str::uuid()->toString();
+        $orderId = isset($data['order_id']) && $data['order_id'] !== ''
+            ? trim((string) $data['order_id'])
+            : (string) ($invoice->razorpay_order_id ?: $invoice->invoice_number);
+
+        try {
+            $payment = $this->service->markInvoicePaid($invoice, $amount, $paymentId, $orderId);
+        } catch (\InvalidArgumentException $exception) {
+            throw ValidationException::withMessages([
+                'amount' => $exception->getMessage(),
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Payment recorded successfully.',
+            'payment' => [
+                'id' => $payment->id,
+                'amount' => (float) $payment->amount,
+                'payment_id' => $payment->razorpay_payment_id,
+                'order_id' => $payment->razorpay_order_id,
+            ],
+            'invoice' => $this->service->paymentSummary($invoice),
+        ]);
     }
 }
