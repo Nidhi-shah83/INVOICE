@@ -287,17 +287,17 @@ class InvoiceService extends ModuleService
         });
     }
 
-    public function createPartialInvoice(Order $order, array $items, ?string $notes = null): Invoice
+    public function createPartialInvoice(Order $order, array $items, ?string $notes = null, ?string $dueDate = null, ?string $issueDate = null): Invoice
     {
-        return DB::transaction(function () use ($order, $items, $notes) {
+        return DB::transaction(function () use ($order, $items, $notes, $dueDate, $issueDate) {
             $dueDays = (int) Config::get('invoice.default_due_days', 15);
             $invoice = Invoice::create([
                 'user_id' => $order->user_id,
                 'client_id' => $order->client_id,
                 'order_id' => $order->id,
                 'invoice_number' => $this->generateInvoiceNumber($order->user_id),
-                'issue_date' => now()->toDateString(),
-                'due_date' => now()->addDays($dueDays)->toDateString(),
+                'issue_date' => $issueDate ?: now()->toDateString(),
+                'due_date' => $dueDate ?: now()->addDays($dueDays)->toDateString(),
                 'status' => 'draft',
                 'notes' => $notes,
             ]);

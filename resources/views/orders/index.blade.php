@@ -50,6 +50,16 @@
                                 </td>
                                 <td class="px-4 py-3 text-right space-x-2">
                                     <a href="{{ route('orders.show', $order) }}" class="text-slate-600 hover:text-slate-900 font-semibold">View</a>
+                                    @if($order->remaining_amount > 0)
+                                        <form method="POST" action="{{ route('orders.createInvoice', $order) }}" onsubmit="return confirmConvertToInvoice({{ $order->id }}, '{{ addslashes($order->quote ? $order->quote->quote_number : 'N/A') }}', '{{ addslashes($order->client->name) }}', {{ $order->remaining_amount }})">
+                                            @csrf
+                                            @foreach($order->items as $item)
+                                                <input type="hidden" name="items[{{ $loop->index }}][order_item_id]" value="{{ $item->id }}">
+                                                <input type="hidden" name="items[{{ $loop->index }}][qty]" value="{{ $item->qty_remaining }}">
+                                            @endforeach
+                                            <button type="submit" class="text-emerald-600 hover:text-emerald-500 font-semibold">Convert to Invoice</button>
+                                        </form>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -66,4 +76,16 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function confirmConvertToInvoice(orderId, quoteNumber, clientName, remainingAmount) {
+            const message = `Convert Order #${orderId} to Invoice?\n\n` +
+                `Quote: ${quoteNumber}\n` +
+                `Client: ${clientName}\n` +
+                `Remaining Amount: ₹${remainingAmount.toFixed(2)}\n\n` +
+                `This will create an invoice for all remaining items.`;
+
+            return confirm(message);
+        }
+    </script>
 @endsection
