@@ -2,6 +2,15 @@
 
 @section('page-title', 'Invoices')
 
+@section('primary-action')
+    <a
+        href="{{ route('invoices.create') }}"
+        class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-600 transition"
+    >
+        + Create invoice
+    </a>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -36,15 +45,24 @@
                         <tr>
                             <th class="px-4 py-3 text-left font-semibold">Invoice #</th>
                             <th class="px-4 py-3 text-left font-semibold">Client</th>
-                            <th class="px-4 py-3 text-left font-semibold">Due</th>
-                            <th class="px-4 py-3 text-right font-semibold">Amount</th>
+                            <th class="px-4 py-3 text-right font-semibold">Grand Total</th>
+                            <th class="px-4 py-3 text-right font-semibold">Amount Due</th>
+                            <th class="px-4 py-3 text-left font-semibold">Payment Status</th>
+                            <th class="px-4 py-3 text-left font-semibold">Due Date</th>
                             <th class="px-4 py-3 text-left font-semibold">Status</th>
                             <th class="px-4 py-3 text-center font-semibold">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse($invoices as $invoice)
-                            <tr>
+                            @php
+                                $isOverdue = $invoice->is_overdue;
+                                $rowClass = $isOverdue
+                                    ? 'bg-rose-50 hover:bg-rose-100'
+                                    : ($invoice->payment_status === 'partial' ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-slate-50');
+                                $currencySymbol = config('invoice.currency_symbol', '₹');
+                            @endphp
+                            <tr class="transition {{ $rowClass }}">
                                 <td class="px-4 py-3 text-slate-900">
                                     <a href="{{ route('invoices.show', $invoice) }}" class="font-semibold text-slate-900 hover:text-emerald-600">
                                         {{ $invoice->invoice_number }}
@@ -53,14 +71,29 @@
                                 <td class="px-4 py-3">
                                     {{ $invoice->client->name ?? 'Unknown client' }}
                                 </td>
+                                <td class="px-4 py-3 text-right font-semibold">
+                                    {{ $currencySymbol }}{{ number_format($invoice->grand_total, 2) }}
+                                </td>
+                                <td class="px-4 py-3 text-right font-semibold text-rose-600">
+                                    {{ $currencySymbol }}{{ number_format($invoice->amount_due, 2) }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    @php
+                                        $paymentClasses = match ($invoice->payment_status) {
+                                            'paid' => 'bg-emerald-100 text-emerald-700',
+                                            'partial' => 'bg-amber-100 text-amber-700',
+                                            default => 'bg-slate-100 text-slate-600',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] {{ $paymentClasses }}">
+                                        {{ strtoupper($invoice->payment_status) }}
+                                    </span>
+                                </td>
                                 <td class="px-4 py-3 text-slate-600">
                                     {{ $invoice->due_date?->format('d M, Y') ?? '—' }}
                                 </td>
-                                <td class="px-4 py-3 text-right font-semibold">
-                                    ₹{{ number_format($invoice->total, 2) }}
-                                </td>
                                 <td class="px-4 py-3">
-                                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] {{ $invoice->status === 'paid' ? 'bg-emerald-100 text-emerald-700' : ($invoice->status === 'sent' && $invoice->due_date?->isPast() ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600') }}">
+                                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] {{ $invoice->status === 'paid' ? 'bg-emerald-100 text-emerald-700' : ($isOverdue ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600') }}">
                                         {{ strtoupper($invoice->status) }}
                                     </span>
                                 </td>
@@ -76,7 +109,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td class="px-4 py-6 text-center text-slate-400" colspan="6">
+                                <td class="px-4 py-6 text-center text-slate-400" colspan="8">
                                     No invoices yet.
                                 </td>
                             </tr>

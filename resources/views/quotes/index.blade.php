@@ -45,39 +45,56 @@
                     </a>
                 @endforeach
             </div>
+
             <div class="overflow-hidden rounded-2xl border border-slate-100">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-900 text-white">
                         <tr>
                             <th class="px-4 py-3 text-left font-semibold">Quote #</th>
                             <th class="px-4 py-3 text-left font-semibold">Client</th>
-                            <th class="px-4 py-3 text-left font-semibold">Valid until</th>
-                            <th class="px-4 py-3 text-right font-semibold">Amount</th>
+                            <th class="px-4 py-3 text-right font-semibold">Grand total</th>
+                            <th class="px-4 py-3 text-left font-semibold">Validity</th>
                             <th class="px-4 py-3 text-left font-semibold">Status</th>
                             <th class="px-4 py-3 text-right font-semibold">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse($quotes as $quote)
-                            <tr class="transition {{ $quote->status === 'accepted' ? 'bg-emerald-50 hover:bg-emerald-100' : 'hover:bg-slate-50' }}">
+                            @php
+                                $validity = $quote->validity_date;
+                                $daysUntil = $validity ? now()->diffInDays($validity, false) : null;
+                                $isExpired = $validity ? $validity->isPast() : false;
+                                $rowClass = $isExpired
+                                    ? 'bg-rose-50 hover:bg-rose-100'
+                                    : (!is_null($daysUntil) && $daysUntil <= 3 ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-slate-50');
+                            @endphp
+                            <tr class="transition {{ $rowClass }}">
                                 <td class="px-4 py-3 font-semibold text-slate-800">{{ $quote->quote_number }}</td>
-                                <td class="px-4 py-3 text-slate-500">{{ $quote->client->name }}</td>
-                                <td class="px-4 py-3 text-slate-500">{{ $quote->validity_date?->format('M j, Y') }}</td>
-                                <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ number_format($quote->total, 2) }}</td>
+                                <td class="px-4 py-3 text-slate-500">
+                                    <div>{{ $quote->client->name }}</div>
+                                    <div class="text-xs text-slate-400">{{ $quote->client->email }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ config('invoice.currency_symbol', '₹') }}{{ number_format($quote->grand_total, 2) }}</td>
+                                <td class="px-4 py-3 text-slate-500">
+                                    <div>{{ $quote->validity_date?->format('M j, Y') }}</div>
+                                    @if($isExpired)
+                                        <span class="text-xs font-semibold uppercase tracking-[0.3em] text-rose-600">Expired</span>
+                                    @elseif(!is_null($daysUntil) && $daysUntil <= 3)
+                                        <span class="text-xs font-semibold uppercase tracking-[0.3em] text-amber-600">Expiring soon</span>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $quote->status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : ($quote->status === 'converted' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600') }}">
-                                        {{ $quote->status }}
+                                        {{ ucfirst($quote->status) }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-right space-x-2">
                                     <a href="{{ route('quotes.show', $quote) }}" class="text-slate-600 hover:text-slate-900 font-semibold">View</a>
                                     <a href="{{ route('quotes.edit', $quote) }}" class="text-slate-600 hover:text-slate-900 font-semibold">Edit</a>
-                                    @if($quote->status === 'accepted')
-                                        <form class="inline" method="POST" action="{{ route('quotes.convert', $quote) }}">
-                                            @csrf
-                                            <button type="submit" class="text-emerald-600 hover:text-emerald-500 font-semibold">Convert →</button>
-                                        </form>
-                                    @endif
+                                    <form class="inline" method="POST" action="{{ route('quotes.convert', $quote) }}">
+                                        @csrf
+                                        <button type="submit" class="text-emerald-600 hover:text-emerald-500 font-semibold">Convert to Invoice</button>
+                                    </form>
                                     <form class="inline" method="POST" action="{{ route('quotes.destroy', $quote) }}">
                                         @csrf
                                         @method('DELETE')

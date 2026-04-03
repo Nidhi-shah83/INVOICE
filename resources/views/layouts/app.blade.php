@@ -109,6 +109,40 @@
                 </main>
             </div>
         </div>
+        @php
+            $alertMessage = session('status') ?? session('success') ?? session('message') ?? session('error');
+            $alertIcon = session('error') ? 'error' : 'success';
+            $alertTitle = $alertIcon === 'error' ? 'Oops!' : 'All set!';
+            $validationErrors = $errors->any() ? $errors->all() : [];
+            $validationList = '';
+
+            if (!empty($validationErrors)) {
+                $validationList = '<ul class="text-left text-sm">' .
+                    collect($validationErrors)->map(fn ($message) => "<li>$message</li>")->implode('') .
+                    '</ul>';
+            }
+        @endphp
+
+        @if ($validationErrors)
+            <script>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validation failed',
+                    html: @json($validationList),
+                    confirmButtonText: 'Fix it'
+                });
+            </script>
+        @elseif ($alertMessage)
+            <script>
+                Swal.fire({
+                    icon: '{{ $alertIcon }}',
+                    title: @json($alertTitle),
+                    text: @json(__($alertMessage)),
+                    confirmButtonText: 'OK'
+                });
+            </script>
+        @endif
+
         @livewireScripts
     </body>
 </html>

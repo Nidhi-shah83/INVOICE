@@ -19,7 +19,16 @@ class QuoteForm extends Component
     public string $issue_date = '';
     public string $validity_date = '';
     public string $status = 'draft';
+    public string $discount_type = 'flat';
+    public float $discount_value = 0;
+    public float $round_off = 0;
+    public string $currency = 'INR';
+    public ?string $payment_terms = null;
+    public ?string $terms_conditions = null;
+    public ?string $salesperson = null;
+    public ?string $reference_no = null;
     public ?string $notes = null;
+    public bool $autoRound = true;
     public array $items = [];
     public Collection $clients;
     public ?Client $selectedClient = null;
@@ -40,7 +49,16 @@ class QuoteForm extends Component
         $this->validity_date = $quote?->validity_date?->format('Y-m-d') ?? now()->addWeek()->format('Y-m-d');
         $this->client_id = $quote?->client_id ?? null;
         $this->status = $quote?->status ?? 'draft';
+        $this->discount_type = $quote?->discount_type ?? 'flat';
+        $this->discount_value = (float) ($quote?->discount_value ?? 0);
+        $this->round_off = (float) ($quote?->round_off ?? 0);
+        $this->currency = $quote?->currency ?? 'INR';
+        $this->payment_terms = $quote?->payment_terms ?? config('invoice.quote_payment_terms');
+        $this->terms_conditions = $quote?->terms_conditions;
+        $this->salesperson = $quote?->salesperson;
+        $this->reference_no = $quote?->reference_no;
         $this->notes = $quote?->notes ?? null;
+        $this->autoRound = $quote ? false : true;
 
         $this->selectedClient = $this->loadClient($this->client_id);
         $this->quoteNumberPreview = $quote?->quote_number ?? $this->resolveQuoteService()->generateQuoteNumber(auth()->id());
@@ -74,6 +92,26 @@ class QuoteForm extends Component
         }
     }
 
+    public function updatedItems(): void
+    {
+        $this->autoRound = true;
+    }
+
+    public function updatedDiscountValue(): void
+    {
+        $this->autoRound = true;
+    }
+
+    public function updatedDiscountType(): void
+    {
+        $this->autoRound = true;
+    }
+
+    public function updatedRoundOff(): void
+    {
+        $this->autoRound = false;
+    }
+
     public function saveDraft(): void
     {
         $quote = $this->saveQuote('draft');
@@ -91,31 +129,20 @@ class QuoteForm extends Component
     public function getTotalsProperty(): array
     {
         $client = $this->loadClient($this->client_id);
-        $subtotal = $cgst = $sgst = $igst = 0;
+        $itemsForTotals = $this->normalizedItemsForTotals();
+        $totals = $this->resolveInvoiceService()->calculateQuoteTotals(
+            $client,
+            $itemsForTotals,
+            $this->discount_type,
+            (float) $this->discount_value,
+            $this->autoRound ? null : (float) $this->round_off,
+        );
 
-        foreach ($this->items as $item) {
-            $qty = (float) ($item['qty'] ?? 0);
-            $rate = (float) ($item['rate'] ?? 0);
-            $gst = (float) ($item['gst_percent'] ?? 0);
-
-            $line = $qty * $rate;
-            $subtotal += $line;
-
-                if ($client) {
-                    $charges = $this->resolveInvoiceService()->calculateGST($client, $line, $gst);
-                    $cgst += $charges['cgst'];
-                    $sgst += $charges['sgst'];
-                    $igst += $charges['igst'];
-                }
+        if ($this->autoRound) {
+            $this->round_off = $totals['round_off'];
         }
 
-        return [
-            'subtotal' => $subtotal,
-            'cgst' => $cgst,
-            'sgst' => $sgst,
-            'igst' => $igst,
-            'total' => $subtotal + $cgst + $sgst + $igst,
-        ];
+        return $totals;
     }
 
     public function render(): View
@@ -125,6 +152,7 @@ class QuoteForm extends Component
             'totals' => $this->totals,
             'selectedClient' => $this->selectedClient,
             'quoteNumberPreview' => $this->quoteNumberPreview,
+            'currencySymbol' => config('invoice.currency_symbol', '₹'),
         ]);
     }
 
@@ -135,7 +163,17 @@ class QuoteForm extends Component
                 'required',
                 Rule::exists('clients', 'id')->where(fn ($query) => $query->where('user_id', auth()->id())),
             ],
+            'issue_date' => ['required', 'date'],
             'validity_date' => ['required', 'date', 'after:today'],
+            'status' => ['required', Rule::in(['draft', 'sent', 'accepted', 'declined', 'expired', 'converted'])],
+            'discount_type' => ['required', 'in:flat,percent'],
+            'discount_value' => ['nullable', 'numeric', 'min:0'],
+            'round_off' => ['nullable', 'numeric'],
+            'currency' => ['required', 'string'],
+            'payment_terms' => ['nullable', 'string'],
+            'terms_conditions' => ['nullable', 'string'],
+            'salesperson' => ['nullable', 'string', 'max:255'],
+            'reference_no' => ['nullable', 'string', 'max:255'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.name' => ['required', 'string', 'max:255'],
             'items.*.qty' => ['required', 'numeric', 'gt:0'],
@@ -156,6 +194,14 @@ class QuoteForm extends Component
             'issue_date' => $this->issue_date,
             'validity_date' => $this->validity_date,
             'status' => $status,
+            'discount_type' => $this->discount_type,
+            'discount_value' => $this->discount_value,
+            'round_off' => $this->round_off,
+            'currency' => $this->currency,
+            'payment_terms' => $this->payment_terms,
+            'terms_conditions' => $this->terms_conditions,
+            'salesperson' => $this->salesperson,
+            'reference_no' => $this->reference_no,
             'notes' => $this->notes,
             'items' => $this->items,
         ];
@@ -170,18 +216,23 @@ class QuoteForm extends Component
 
     protected function sanitizeItems(): void
     {
-        $filtered = collect($this->items)
+        $filtered = $this->normalizedItemsForTotals();
+
+        $this->items = $filtered ?: [$this->blankItem()];
+    }
+
+    protected function normalizedItemsForTotals(): array
+    {
+        return collect($this->items)
             ->map(fn ($item) => [
                 'name' => trim($item['name'] ?? ''),
-                'qty' => (float) ($item['qty'] ?? 0),
-                'rate' => (float) ($item['rate'] ?? 0),
-                'gst_percent' => (float) ($item['gst_percent'] ?? 18),
+                'qty' => max(0, (float) ($item['qty'] ?? 0)),
+                'rate' => max(0, (float) ($item['rate'] ?? 0)),
+                'gst_percent' => max(0, (float) ($item['gst_percent'] ?? 18)),
             ])
             ->filter(fn ($item) => $item['name'] !== '' || $item['qty'] > 0 || $item['rate'] > 0)
             ->values()
             ->all();
-
-        $this->items = $filtered ?: [$this->blankItem()];
     }
 
     protected function blankItem(): array

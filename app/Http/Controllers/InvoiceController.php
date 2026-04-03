@@ -217,6 +217,22 @@ class InvoiceController extends Controller
         return redirect()->route('invoices.show', $invoice)->with('status', 'Invoice sent.');
     }
 
+    public function create(Request $request)
+    {
+        $prefill = $request->query('prefill');
+
+        return view('invoices.create', [
+            'prefill' => is_array($prefill) ? $prefill : [],
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        return redirect()
+            ->route('invoices.index')
+            ->with('error', 'Manual invoice creation is coming soon; we will persist drafts once the new workflow is wired.');
+    }
+
     public function markPaid(Request $request, Invoice $invoice)
     {
         $this->ensureApiSecret($request);
