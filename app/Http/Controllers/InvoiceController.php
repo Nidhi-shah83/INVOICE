@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Services\InvoiceService;
+use App\Services\SettingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +23,7 @@ class InvoiceController extends Controller
 
     public function __construct(
         protected InvoiceService $service,
+        protected SettingService $settings,
     )
     {
         $this->middleware('auth')->except(['overdue', 'markPaid', 'showPaymentPage', 'processPayment']);
@@ -237,7 +239,7 @@ class InvoiceController extends Controller
         $roundOff = round($grandTotal - $subtotal, 2);
         $issueDate = $data['date'];
         $dueDate = Carbon::parse($issueDate)
-            ->addDays((int) config('invoice.default_due_days', 15))
+            ->addDays((int) $this->settings->get('default_due_days', config('invoice.default_due_days', 15)))
             ->toDateString();
 
         $invoice = Invoice::create([

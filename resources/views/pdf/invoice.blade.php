@@ -306,11 +306,24 @@
             $invoiceDate = $invoice->issue_date?->format('d M, Y') ?? '-';
             $dueDate = $invoice->due_date?->format('d M, Y') ?? '-';
             $company = [
-                'name' => config('company.name', '—'),
-                'address' => config('company.address', '—'),
-                'gstin' => config('company.gstin', '—'),
+                'name' => $settingsService->get('business_name', config('company.name', '—')),
+                'address' => $settingsService->get('address', config('company.address', '—')),
+                'gstin' => $settingsService->get('gstin', config('company.gstin', '—')),
             ];
             $client = $invoice->client;
+            $logo = null;
+            if (! empty($settingsService->get('logo'))) {
+                $logoPath = storage_path('app/public/' . $settingsService->get('logo'));
+                if (file_exists($logoPath)) {
+                    $logo = base64_encode(file_get_contents($logoPath));
+                }
+            }
+            if (! $logo) {
+                $logoPath = public_path('images/logo.png');
+                if (file_exists($logoPath)) {
+                    $logo = base64_encode(file_get_contents($logoPath));
+                }
+            }
             $shipping = [
                 'name' => data_get($invoice, 'ship_to_name') ?: $client?->name ?: '—',
                 'address' => data_get($invoice, 'ship_to_address') ?: $client?->address ?: '—',
@@ -330,10 +343,11 @@
                 'balance_due' => (float) ($invoice->amount_due ?? max(0, ($invoice->grand_total ?? $invoice->total ?? 0) - ($invoice->amount_paid ?? 0))),
             ];
             $bankDetails = [
-                'name' => $invoice->bank_name ?? '—',
-                'account' => $invoice->account_number ?? '—',
-                'ifsc' => $invoice->ifsc_code ?? '—',
+                'name' => $invoice->bank_name ?: $settingsService->get('bank_name', '—'),
+                'account' => $invoice->account_number ?: $settingsService->get('account_number', '—'),
+                'ifsc' => $invoice->ifsc_code ?: $settingsService->get('ifsc_code', '—'),
                 'branch' => $invoice->bank_branch ?? '—',
+                'upi' => $settingsService->get('upi_id', null),
             ];
         @endphp
 
@@ -341,6 +355,9 @@
             <table class="header-table" cellpadding="0" cellspacing="0">
                 <tr>
                     <td width="60%">
+                        @if(! empty($logo))
+                            <img src="data:image/png;base64,{{ $logo }}" alt="Logo" style="max-height: 56px; margin-bottom: 12px; display: block;" />
+                        @endif
                         <p class="header-label">Invoice</p>
                         <p class="header-title">{{ $invoice->invoice_number }}</p>
                     </td>
@@ -508,6 +525,23 @@
                     <td width="45%">
                         <p class="footer-label">Terms &amp; Conditions</p>
                         <p class="footer-text">{{ $invoice->terms_conditions ?? '—' }}</p>
+                    </td>
+                </tr>
+            </table>
+
+            <table class="footer-table" cellpadding="0" cellspacing="0" style="margin-top: 22px;">
+                <tr>
+                    <td width="100%">
+                        <div class="contact-box" style="border-color:#dfe4ec; padding:16px; background:#f8fafc;">
+                            <p class="footer-label">Bank Details</p>
+                            <p class="footer-text"><strong>Bank:</strong> {{ $bankDetails['name'] }}</p>
+                            <p class="footer-text"><strong>Account:</strong> {{ $bankDetails['account'] }}</p>
+                            <p class="footer-text"><strong>IFSC:</strong> {{ $bankDetails['ifsc'] }}</p>
+                            <p class="footer-text"><strong>Branch:</strong> {{ $bankDetails['branch'] }}</p>
+                            @if(! empty($bankDetails['upi']))
+                                <p class="footer-text"><strong>UPI:</strong> {{ $bankDetails['upi'] }}</p>
+                            @endif
+                        </div>
                     </td>
                 </tr>
             </table>

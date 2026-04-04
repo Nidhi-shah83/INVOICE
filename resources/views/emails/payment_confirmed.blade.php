@@ -16,6 +16,9 @@
                 <p><strong>Payment ID:</strong> {{ $payment->razorpay_payment_id }}</p>
                 <p><strong>Invoice:</strong> {{ $invoice->invoice_number }}</p>
             </div>
+            @if(! empty($emailSignature))
+                <p style="margin-top:24px;color:#475569;white-space: pre-line;">{{ $emailSignature }}</p>
+            @endif
         </div>
     </body>
 </html>

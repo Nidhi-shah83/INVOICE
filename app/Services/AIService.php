@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\SettingService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -9,21 +10,35 @@ use Throwable;
 
 class AIService
 {
+    public function __construct(protected SettingService $settings)
+    {
+    }
+
     public function parseInvoiceText(string $text): array
     {
+        if (! $this->settings->get('enable_ai_calls', true)) {
+            throw new RuntimeException('AI calls are disabled for your account.');
+        }
+
         $webhook = (string) config('services.n8n.webhook_parse');
 
         if (blank($webhook)) {
             throw new RuntimeException('N8N parse webhook is not configured.');
         }
 
+        $payload = [
+            'text' => $text,
+            'tone' => $this->settings->get('ai_call_tone', 'formal'),
+            'language' => $this->settings->get('ai_language', 'English'),
+            'reminder_delay' => $this->settings->get('ai_reminder_delay', 3),
+            'max_follow_up_attempts' => $this->settings->get('ai_max_follow_up_attempts', 3),
+        ];
+
         $response = Http::asJson()
             ->acceptJson()
             ->timeout(30)
             ->withHeaders($this->secretHeader())
-            ->post($webhook, [
-                'text' => $text,
-            ]);
+            ->post($webhook, $payload);
 
         $response->throw();
 

@@ -7,7 +7,7 @@
     <body style="font-family: 'Inter', sans-serif; background:#f5f5f0; padding: 32px;">
         <div style="max-width: 640px; margin:auto; background:#fff; padding:32px; border-radius:16px; box-shadow:0 12px 40px rgba(15,23,42,.15);">
             @php $currencySymbol = config('invoice.currency_symbol', '?'); @endphp
-            <p style="margin:0 0 6px; font-size:14px; color:#94a3b8;">{{ config('invoice.business_name') }}</p>
+            <p style="margin:0 0 6px; font-size:14px; color:#94a3b8;">{{ $settingsService->get('business_name', config('invoice.business_name')) }}</p>
             <h1 style="margin:8px 0 16px; color:#0f172a;">Invoice {{ $invoice->invoice_number }}</h1>
             <p style="color:#475569;">Hi {{ $invoice->client->name }},</p>
             <p style="color:#475569;">
@@ -48,10 +48,13 @@
                 <p><strong>Amount Paid:</strong> {{ $currencySymbol }}{{ number_format($invoice->amount_paid, 2) }}</p>
                 <p><strong>Due Date:</strong> {{ $invoice->due_date?->format('F d, Y') }}</p>
                 <p><strong>Payment terms:</strong> {{ $invoice->payment_terms ?? 'As agreed' }}</p>
-                <p><strong>Reference:</strong> {{ $invoice->reference_no ?: '—' }}</p>
+                <p><strong>Reference:</strong> {{ $invoice->reference_no ?: 'ï¿½' }}</p>
             </div>
 
             <p style="margin-top:24px; color:#475569;">If you have questions, reply to this email. We appreciate your business.</p>
+            @if(! empty($emailSignature))
+                <p style="margin-top:16px; color:#475569; white-space: pre-line;">{{ $emailSignature }}</p>
+            @endif
         </div>
     </body>
 </html>

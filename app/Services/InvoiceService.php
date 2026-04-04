@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Quote;
 use App\Services\RazorpayService;
+use App\Services\SettingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -25,23 +26,28 @@ class InvoiceService extends ModuleService
         return 'Invoices';
     }
 
-    public function __construct(protected RazorpayService $razorpayService)
-    {
+    public function __construct(
+        protected RazorpayService $razorpayService,
+        protected SettingService $settings,
+    ) {
     }
 
     public function generateInvoiceNumber(int $userId): string
     {
         $year = now()->format('Y');
-        $prefix = sprintf('%s-%s-', Config::get('invoice.invoice_prefix', 'INV'), $year);
+        $prefix = (string) $this->settings->get('invoice_prefix', Config::get('invoice.invoice_prefix', 'INV'));
+        $prefix = trim($prefix);
+        $prefix = rtrim($prefix, '-');
+        $fullPrefix = sprintf('%s-%s-', $prefix, $year);
 
         $lastInvoice = Invoice::where('user_id', $userId)
-            ->where('invoice_number', 'like', $prefix.'%')
+            ->where('invoice_number', 'like', $fullPrefix.'%')
             ->orderByDesc('id')
             ->first();
 
         $sequence = $lastInvoice ? (int) Str::afterLast($lastInvoice->invoice_number, '-') + 1 : 1;
 
-        return sprintf('%s%03d', $prefix, $sequence);
+        return sprintf('%s%03d', $fullPrefix, $sequence);
     }
 
     public function generateQuoteNumber(int $userId): string
@@ -290,7 +296,7 @@ class InvoiceService extends ModuleService
     public function createPartialInvoice(Order $order, array $items, ?string $notes = null, ?string $dueDate = null, ?string $issueDate = null): Invoice
     {
         return DB::transaction(function () use ($order, $items, $notes, $dueDate, $issueDate) {
-            $dueDays = (int) Config::get('invoice.default_due_days', 15);
+            $dueDays = (int) $this->settings->get('default_due_days', Config::get('invoice.default_due_days', 15));
             $invoice = Invoice::create([
                 'user_id' => $order->user_id,
                 'client_id' => $order->client_id,
@@ -409,8 +415,18 @@ class InvoiceService extends ModuleService
 
         $invoice = $this->syncInvoicePaymentState($invoice);
 
-        Mail::to($invoice->client->email)
-            ->send(new InvoiceSentMail($invoice, $paymentLink, $pdf));
+        $fromName = $this->settings->get('email_from_name', config('mail.from.name', 'Laravel'));
+        $fromAddress = $this->settings->get('email_from_address', config('mail.from.address', 'hello@example.com'));
+        $emailSignature = $this->settings->get('email_signature', '');
+
+        $mail = (new InvoiceSentMail($invoice, $paymentLink, $pdf))
+            ->from($fromAddress, $fromName)
+            ->with([
+                'emailSignature' => $emailSignature,
+                'businessName' => $this->settings->get('business_name', config('invoice.business_name')),
+            ]);
+
+        Mail::to($invoice->client->email)->send($mail);
 
         return [
             'path' => $path,
@@ -451,8 +467,18 @@ class InvoiceService extends ModuleService
             $lockedInvoice = $this->recalculatePaymentStateFromLedger($lockedInvoice);
 
             if (! empty($lockedInvoice->client?->email)) {
-                Mail::to($lockedInvoice->client->email)
-                    ->send(new PaymentConfirmedMail($lockedInvoice, $payment));
+                $fromName = $this->settings->get('email_from_name', config('mail.from.name', 'Laravel'));
+                $fromAddress = $this->settings->get('email_from_address', config('mail.from.address', 'hello@example.com'));
+                $emailSignature = $this->settings->get('email_signature', '');
+
+                $mail = (new PaymentConfirmedMail($lockedInvoice, $payment))
+                    ->from($fromAddress, $fromName)
+                    ->with([
+                        'emailSignature' => $emailSignature,
+                        'businessName' => $this->settings->get('business_name', config('invoice.business_name')),
+                    ]);
+
+                Mail::to($lockedInvoice->client->email)->send($mail);
             }
 
             return $payment;

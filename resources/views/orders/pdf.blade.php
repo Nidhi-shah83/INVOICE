@@ -290,6 +290,12 @@
             $issuedOn = $order->created_at?->format('d M, Y') ?? '-';
             $dueDate = $order->quote?->validity_date?->format('d M, Y') ?? '-';
             $logo = $logo ?? null;
+            if (! $logo && ! empty($settingsService->get('logo'))) {
+                $logoPath = storage_path('app/public/' . $settingsService->get('logo'));
+                if (file_exists($logoPath)) {
+                    $logo = base64_encode(file_get_contents($logoPath));
+                }
+            }
             if (! $logo) {
                 $logoPath = public_path('images/logo.png');
                 if (file_exists($logoPath)) {
@@ -337,9 +343,9 @@
                                         <tr>
                                             <td>
                                                 <p class="section-title">From</p>
-                                                <p class="section-text"><strong>{{ config('company.name') }}</strong></p>
-                                                <p class="section-text">{{ config('company.address') }}</p>
-                                                <p class="section-text">GSTIN {{ config('company.gstin') ?? '—' }}</p>
+                                                <p class="section-text"><strong>{{ $settingsService->get('business_name', config('company.name')) }}</strong></p>
+                                                <p class="section-text">{{ $settingsService->get('address', config('company.address')) }}</p>
+                                                <p class="section-text">GSTIN {{ $settingsService->get('gstin', config('company.gstin')) ?? '—' }}</p>
                                             </td>
                                         </tr>
                                     </table>

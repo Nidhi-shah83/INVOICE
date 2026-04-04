@@ -50,7 +50,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.markRead');
-    Route::resource('settings', SettingController::class);
+    Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
+    Route::patch('settings', [SettingController::class, 'update'])->name('settings.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

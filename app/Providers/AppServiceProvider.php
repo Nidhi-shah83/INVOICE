@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Services\SettingService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +24,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        View::composer('*', function ($view) {
+            $view->with('settingsService', app(SettingService::class));
+        });
+
         RateLimiter::for('n8n-user', function (Request $request): Limit {
             $userId = (string) ($request->user()?->id ?? $request->input('user_id') ?? $request->ip());
 
