@@ -133,50 +133,48 @@
                     <button class="text-xs text-rose-600 hover:text-rose-400">Delete order</button>
                 </form>
             </div>
-        </div>
-
-        @if($order->quote)
-            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <p class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-3">Quote Details</p>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div>
-                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Quote #</span>
-                        <p class="font-semibold text-slate-900">{{ $order->quote->quote_number }}</p>
+            @if($order->quote)
+                <div class="space-y-3">
+                    <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Quote Details</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Quote #</span>
+                            <p class="font-semibold text-slate-900">{{ $order->quote->quote_number }}</p>
+                        </div>
+                        <div>
+                            <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Issue Date</span>
+                            <p class="font-semibold text-slate-900">{{ $order->quote->issue_date?->format('M d, Y') }}</p>
+                        </div>
+                        <div>
+                            <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Validity Date</span>
+                            <p class="font-semibold text-slate-900">{{ $order->quote->validity_date?->format('M d, Y') }}</p>
+                        </div>
+                        <div>
+                            <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Total</span>
+                            <p class="font-semibold text-slate-900">₹{{ number_format($order->quote->grand_total, 2) }}</p>
+                        </div>
+                        <div>
+                            <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Payment Terms</span>
+                            <p class="font-semibold text-slate-900">{{ $order->quote->payment_terms ?? 'N/A' }}</p>
+                        </div>
+                        <div>
+                            <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Salesperson</span>
+                            <p class="font-semibold text-slate-900">{{ $order->quote->salesperson ?? 'N/A' }}</p>
+                        </div>
                     </div>
-                    <div>
-                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Issue Date</span>
-                        <p class="font-semibold text-slate-900">{{ $order->quote->issue_date?->format('M d, Y') }}</p>
-                    </div>
-                    <div>
-                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Validity Date</span>
-                        <p class="font-semibold text-slate-900">{{ $order->quote->validity_date?->format('M d, Y') }}</p>
-                    </div>
-                    <div>
-                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Total</span>
-                        <p class="font-semibold text-slate-900">₹{{ number_format($order->quote->grand_total, 2) }}</p>
-                    </div>
-                    <div>
-                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Payment Terms</span>
-                        <p class="font-semibold text-slate-900">{{ $order->quote->payment_terms ?? 'N/A' }}</p>
-                    </div>
-                    <div>
-                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Salesperson</span>
-                        <p class="font-semibold text-slate-900">{{ $order->quote->salesperson ?? 'N/A' }}</p>
-                    </div>
+                    @if($order->quote->notes)
+                        <div>
+                            <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Notes</span>
+                            <p class="text-sm text-slate-600 mt-1">{{ $order->quote->notes }}</p>
+                        </div>
+                    @endif
                 </div>
-                @if($order->quote->notes)
-                    <div class="mt-4">
-                        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Notes</span>
-                        <p class="text-sm text-slate-600 mt-1">{{ $order->quote->notes }}</p>
-                    </div>
-                @endif
-            </div>
-        @endif
+            @endif
 
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Order Items</p>
-            <div class="mt-4 overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <div class="space-y-3">
+                <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Order Items</p>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-900 text-white">
                         <tr>
                             <th class="px-4 py-3 text-left font-semibold">Item</th>

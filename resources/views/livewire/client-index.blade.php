@@ -46,12 +46,27 @@
                             <td class="px-4 py-3 text-sm font-semibold text-slate-700">{{ ucfirst($client->client_type) }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('clients.show', $client) }}" class="text-sm font-semibold text-emerald-600 hover:text-emerald-500">View</a>
-                                    <a href="{{ route('clients.edit', $client) }}" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Edit</a>
-                                    <form method="POST" action="{{ route('clients.destroy', $client) }}" onsubmit="return confirm('Discard this client?');">
+                                    <a
+                                        href="{{ route('clients.show', $client) }}"
+                                        class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                    >
+                                        View
+                                    </a>
+                                    <a
+                                        href="{{ route('clients.edit', $client) }}"
+                                        class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                    >
+                                        Edit
+                                    </a>
+                                    <form method="POST" action="{{ route('clients.destroy', $client) }}" onsubmit="return confirm('Discard this client?');" class="inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-sm font-semibold text-rose-600 hover:text-rose-500">Delete</button>
+                                        <button
+                                            type="submit"
+                                            class="inline-flex items-center gap-1 rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-600 hover:border-rose-200 hover:bg-rose-100"
+                                        >
+                                            Delete
+                                        </button>
                                     </form>
                                 </div>
                             </td>

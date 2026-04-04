@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="space-y-6">
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                     <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Client</p>
@@ -29,7 +29,7 @@
                 </div>
             </div>
 
-            <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <div class="space-y-2 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
                     <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Contact</p>
                     <p class="text-sm font-semibold text-slate-900">{{ $client->email ?? 'Not provided' }}</p>
@@ -56,18 +56,14 @@
                     <p class="text-sm text-slate-600">{{ $client->address ?? 'No address provided' }}</p>
                 </div>
             </div>
-        </div>
 
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Notes</p>
-                    <h2 class="text-lg font-semibold text-slate-900">Internal context</h2>
-                </div>
+            <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Notes</p>
+                <h2 class="text-lg font-semibold text-slate-900">Internal context</h2>
+                <p class="mt-4 text-sm text-slate-600">
+                    {{ $client->notes ?? 'No notes yet. Use this space for internal reminders or conversations.' }}
+                </p>
             </div>
-            <p class="mt-4 text-sm text-slate-600">
-                {{ $client->notes ?? 'No notes yet. Use this space for internal reminders or conversations.' }}
-            </p>
         </div>
 
         <div x-data="{ tab: 'quotes' }" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

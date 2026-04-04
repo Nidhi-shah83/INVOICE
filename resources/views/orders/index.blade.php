@@ -92,7 +92,12 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-right space-x-2">
-                                    <a href="{{ route('orders.show', $order) }}" class="text-slate-600 hover:text-slate-900 font-semibold">View</a>
+                                    <a
+                                        href="{{ route('orders.show', $order) }}"
+                                        class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                    >
+                                        View
+                                    </a>
                                     @if($order->remaining_amount > 0)
                                         <form
                                             method="POST"
@@ -108,7 +113,12 @@
                                                 <input type="hidden" name="items[{{ $loop->index }}][order_item_id]" value="{{ $item->id }}">
                                                 <input type="hidden" name="items[{{ $loop->index }}][qty]" value="{{ $item->qty_remaining }}">
                                             @endforeach
-                                            <button type="submit" class="text-emerald-600 hover:text-emerald-500 font-semibold">Convert to Invoice</button>
+                                            <button
+                                                type="submit"
+                                                class="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 hover:border-emerald-200 hover:bg-emerald-100"
+                                            >
+                                                Convert to Invoice
+                                            </button>
                                         </form>
                                     @endif
                                 </td>
