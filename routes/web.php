@@ -4,6 +4,7 @@ use App\Http\Controllers\AIController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\ReportController;
@@ -45,6 +46,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('ai-assistant/chat', [AIController::class, 'chat'])->name('ai-assistant.chat');
     Route::post('ai-assistant/parse', [AIController::class, 'parse'])->name('ai-assistant.parse');
     Route::resource('reports', ReportController::class);
+    Route::get('reports-export', [ReportController::class, 'export'])->name('reports.export');
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.markRead');
     Route::resource('settings', SettingController::class);
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
