@@ -88,9 +88,17 @@ class OrderController extends Controller
             ],
             'items.*.qty' => ['required', 'numeric', 'gt:0'],
             'notes' => ['nullable', 'string'],
+            'issue_date' => ['nullable', 'date'],
+            'due_date' => ['nullable', 'date', 'after_or_equal:issue_date'],
         ]);
 
-        $invoice = $this->invoiceService->createPartialInvoice($order, $data['items'], $data['notes'] ?? null);
+        $invoice = $this->invoiceService->createPartialInvoice(
+            $order,
+            $data['items'],
+            $data['notes'] ?? null,
+            $data['due_date'] ?? null,
+            $data['issue_date'] ?? null
+        );
 
         return redirect()->route('orders.show', $order)->with('status', "Invoice {$invoice->invoice_number} created.");
     }
