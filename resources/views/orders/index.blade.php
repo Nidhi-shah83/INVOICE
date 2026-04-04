@@ -94,7 +94,15 @@
                                 <td class="px-4 py-3 text-right space-x-2">
                                     <a href="{{ route('orders.show', $order) }}" class="text-slate-600 hover:text-slate-900 font-semibold">View</a>
                                     @if($order->remaining_amount > 0)
-                                        <form method="POST" action="{{ route('orders.createInvoice', $order) }}" onsubmit="return confirmConvertToInvoice({{ $order->id }}, '{{ addslashes($order->quote ? $order->quote->quote_number : 'N/A') }}', '{{ addslashes($order->client->name) }}', {{ $order->remaining_amount }})">
+                                        <form
+                                            method="POST"
+                                            action="{{ route('orders.createInvoice', $order) }}"
+                                            class="inline-block convert-invoice-form"
+                                            data-order-id="{{ $order->id }}"
+                                            data-quote-number="{{ e($order->quote?->quote_number ?? 'N/A') }}"
+                                            data-client-name="{{ e($order->client->name) }}"
+                                            data-remaining-amount="{{ number_format($order->remaining_amount, 2, '.', '') }}"
+                                        >
                                             @csrf
                                             @foreach($order->items as $item)
                                                 <input type="hidden" name="items[{{ $loop->index }}][order_item_id]" value="{{ $item->id }}">
@@ -121,14 +129,46 @@
     </div>
 
     <script>
-        function confirmConvertToInvoice(orderId, quoteNumber, clientName, remainingAmount) {
-            const message = `Convert Order #${orderId} to Invoice?\n\n` +
-                `Quote: ${quoteNumber}\n` +
-                `Client: ${clientName}\n` +
-                `Remaining Amount: ₹${remainingAmount.toFixed(2)}\n\n` +
-                `This will create an invoice for all remaining items.`;
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.convert-invoice-form').forEach(form => {
+                form.addEventListener('submit', event => handleConvertForm(event, form));
+            });
+        });
 
-            return confirm(message);
+        function handleConvertForm(event, form) {
+            event.preventDefault();
+
+            if (!window.Swal) {
+                form.submit();
+                return;
+            }
+
+            const orderId = form.dataset.orderId;
+            const quoteNumber = form.dataset.quoteNumber || 'N/A';
+            const clientName = form.dataset.clientName || 'N/A';
+            const remainingAmount = Number(form.dataset.remainingAmount) || 0;
+
+            Swal.fire({
+                title: `Convert Order #${orderId}?`,
+                html:
+                    `<p style="margin-bottom: 6px;">Quote: ${quoteNumber}</p>` +
+                    `<p style="margin-bottom: 6px;">Client: ${clientName}</p>` +
+                    `<p style="margin-bottom: 6px;">Remaining amount: ${formatCurrency(remainingAmount)}</p>` +
+                    `<p style="margin-top: 8px; color: #4b5563;">This will create an invoice for all remaining items.</p>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Create invoice',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+            }).then(result => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        }
+
+        function formatCurrency(value) {
+            return `₹${value.toFixed(2)}`;
         }
     </script>
 @endsection

@@ -5,7 +5,8 @@
 @section('primary-action')
     <a
         href="{{ route('invoices.create') }}"
-        class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-600 transition"
+        class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-600 transition js-create-invoice"
+        data-invoice-action="create"
     >
         + Create invoice
     </a>
@@ -174,15 +175,25 @@
                                     <div class="flex items-center gap-2 justify-center">
                                         <a
                                             href="{{ route('invoices.download', $invoice) }}"
-                                            class="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
+                                            class="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700 js-download-invoice"
                                             title="Download invoice {{ $invoice->invoice_number }} as PDF"
+                                            data-invoice-number="{{ $invoice->invoice_number }}"
                                         >
                                             PDF
+                                        </a>
+                                        <a
+                                            href="{{ route('invoices.show', ['invoice' => $invoice, 'view' => '1']) }}"
+                                            class="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                                            title="View invoice {{ $invoice->invoice_number }}"
+                                        >
+                                            View
                                         </a>
                                         <form
                                             action="{{ route('invoices.send', $invoice) }}"
                                             method="POST"
-                                            onsubmit="return confirm('Send invoice {{ $invoice->invoice_number }} to {{ addslashes($invoice->client->name ?? 'client') }}?');"
+                                            class="js-send-invoice"
+                                            data-invoice-number="{{ $invoice->invoice_number }}"
+                                            data-client-name="{{ $invoice->client->name ?? 'client' }}"
                                         >
                                             @csrf
                                             <button
@@ -321,6 +332,94 @@
                     window.location.href = item.url;
                 },
             };
+        }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.js-send-invoice').forEach(form => {
+                form.addEventListener('submit', event => handleInvoiceSend(event, form));
+            });
+
+            document.querySelectorAll('.js-download-invoice').forEach(link => {
+                link.addEventListener('click', event => handleInvoiceDownload(event, link));
+            });
+
+            const createLink = document.querySelector('.js-create-invoice');
+            if (createLink) {
+                createLink.addEventListener('click', event => handleInvoiceCreate(event, createLink));
+            }
+        });
+
+        function handleInvoiceSend(event, form) {
+            event.preventDefault();
+
+            if (!window.Swal) {
+                form.submit();
+                return;
+            }
+
+            const invoiceNumber = form.dataset.invoiceNumber || 'invoice';
+            const clientName = form.dataset.clientName || 'client';
+
+            Swal.fire({
+                title: `Send ${invoiceNumber}?`,
+                text: `Email this invoice to ${clientName}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Send invoice',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+            }).then(result => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        }
+
+        function handleInvoiceDownload(event, link) {
+            event.preventDefault();
+
+            if (!window.Swal) {
+                window.location.href = link.href;
+                return;
+            }
+
+            const invoiceNumber = link.dataset.invoiceNumber || 'invoice';
+
+            Swal.fire({
+                title: `Download ${invoiceNumber}?`,
+                text: 'The PDF will download after you confirm.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Download',
+                cancelButtonText: 'Cancel',
+            }).then(result => {
+                if (result.isConfirmed) {
+                    window.location.href = link.href;
+                }
+            });
+        }
+
+        function handleInvoiceCreate(event, link) {
+            event.preventDefault();
+
+            if (!window.Swal) {
+                window.location.href = link.href;
+                return;
+            }
+
+            Swal.fire({
+                title: 'Create a new invoice?',
+                text: 'You will be redirected to the invoice builder.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Create invoice',
+                cancelButtonText: 'Cancel',
+            }).then(result => {
+                if (result.isConfirmed) {
+                    window.location.href = link.href;
+                }
+            });
         }
     </script>
 @endsection

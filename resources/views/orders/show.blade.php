@@ -4,7 +4,12 @@
 
 @section('primary-action')
     <div class="flex flex-wrap gap-3">
-        <form method="POST" action="{{ route('orders.sendPdf', $order) }}">
+        <form
+            method="POST"
+            action="{{ route('orders.sendPdf', $order) }}"
+            class="send-pdf-form"
+            data-order-number="{{ $order->order_number }}"
+        >
             @csrf
             <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800 transition">
                 Send PDF
@@ -12,7 +17,8 @@
         </form>
         <a
             href="{{ route('orders.pdf', $order) }}?download=1"
-            class="inline-flex items-center gap-2 rounded-full border border-slate-900 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-900 hover:text-white transition"
+            class="inline-flex items-center gap-2 rounded-full border border-slate-900 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-900 hover:text-white transition download-pdf-link"
+            data-order-number="{{ $order->order_number }}"
         >
             Download PDF
         </a>
@@ -76,7 +82,7 @@
                 @if($order->remaining_amount > 0)
                     <div class="flex flex-wrap gap-2">
                         <button
-                            onclick="toggleConvertOptions()"
+                            onclick="openConversionAlert()"
                             class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-xs font-semibold text-white shadow-lg hover:bg-emerald-600 transition"
                         >
                             Convert to Invoice
@@ -88,48 +94,6 @@
 
                         <div class="space-y-3">
                             <div>
-                                <h5 class="text-xs font-semibold text-slate-700 mb-2">Option 1: Convert All Remaining Items</h5>
-                                <form method="POST" action="{{ route('orders.createInvoice', $order) }}" onsubmit="return confirm('Create invoice for all remaining items (₹{{ number_format($order->remaining_amount, 2) }})?')">
-                                    @csrf
-                                    @foreach($order->items as $item)
-                                        @if($item->qty_remaining > 0)
-                                            <input type="hidden" name="items[{{ $loop->index }}][order_item_id]" value="{{ $item->id }}">
-                                            <input type="hidden" name="items[{{ $loop->index }}][qty]" value="{{ $item->qty_remaining }}">
-                                        @endif
-                                    @endforeach
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-end">
-                                        <label class="flex flex-col text-xs text-slate-600">
-                                            <span>Issue Date</span>
-                                            <input
-                                                type="date"
-                                                name="issue_date"
-                                                value="{{ now()->format('Y-m-d') }}"
-                                                class="mt-1 rounded-2xl border border-slate-200 px-3 py-1 text-sm"
-                                                required
-                                            >
-                                        </label>
-
-                                        <label class="flex flex-col text-xs text-slate-600">
-                                            <span>Due Date</span>
-                                            <input
-                                                type="date"
-                                                name="due_date"
-                                                value="{{ now()->addDays(15)->format('Y-m-d') }}"
-                                                class="mt-1 rounded-2xl border border-slate-200 px-3 py-1 text-sm"
-                                                required
-                                            >
-                                        </label>
-                                    </div>
-
-                                    <div class="mt-3">
-                                        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-600">
-                                            Create Full Invoice
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <div>
                                 <h5 class="text-xs font-semibold text-slate-700 mb-2">Option 2: Select Specific Items</h5>
                                 <button
                                     onclick="togglePartialBilling()"
@@ -140,9 +104,30 @@
                             </div>
                         </div>
                     </div>
+
+                    <form
+                        method="POST"
+                        action="{{ route('orders.createInvoice', $order) }}"
+                        id="convert-all-swal-form"
+                        class="hidden"
+                        data-order-id="{{ $order->id }}"
+                        data-quote-number="{{ e($order->quote?->quote_number ?? 'N/A') }}"
+                        data-client-name="{{ e($order->client->name) }}"
+                        data-remaining-amount="{{ number_format($order->remaining_amount, 2, '.', '') }}"
+                    >
+                        @csrf
+                        @foreach($order->items as $item)
+                            @if($item->qty_remaining > 0)
+                                <input type="hidden" name="items[{{ $loop->index }}][order_item_id]" value="{{ $item->id }}">
+                                <input type="hidden" name="items[{{ $loop->index }}][qty]" value="{{ $item->qty_remaining }}">
+                            @endif
+                        @endforeach
+                        <input type="hidden" name="issue_date" id="ssw-issue-date" value="{{ now()->format('Y-m-d') }}">
+                        <input type="hidden" name="due_date" id="ssw-due-date" value="{{ now()->addDays(15)->format('Y-m-d') }}">
+                    </form>
                 @endif
 
-                <form method="POST" action="{{ route('orders.destroy', $order) }}">
+                <form method="POST" action="{{ route('orders.destroy', $order) }}" class="delete-order-form" data-order-number="{{ $order->order_number }}">
                     @csrf
                     @method('DELETE')
                     <button class="text-xs text-rose-600 hover:text-rose-400">Delete order</button>
@@ -153,23 +138,6 @@
         @if($order->quote)
             <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <p class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-3">Quote Details</p>
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <a
-                        href="{{ route('orders.pdf', $order) }}?download=1"
-                        class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-900"
-                    >
-                        Download PDF
-                    </a>
-                    <form method="POST" action="{{ route('orders.sendPdf', $order) }}" class="inline">
-                        @csrf
-                        <button
-                            type="submit"
-                            class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white hover:bg-slate-800"
-                        >
-                            Send PDF
-                        </button>
-                    </form>
-                </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div>
                         <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Quote #</span>
@@ -373,6 +341,213 @@
                 container.classList.add('hidden');
                 toggleText.textContent = 'Show';
             }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.convert-invoice-form').forEach(form => {
+                form.addEventListener('submit', event => handleConvertForm(event, form));
+            });
+
+            document.querySelectorAll('.delete-order-form').forEach(form => {
+                form.addEventListener('submit', event => handleDeleteForm(event, form));
+            });
+
+            document.querySelectorAll('.send-pdf-form').forEach(form => {
+                form.addEventListener('submit', event => handleSendPdfForm(event, form));
+            });
+
+            document.querySelectorAll('.download-pdf-link').forEach(link => {
+                link.addEventListener('click', event => handleDownloadLink(event, link));
+            });
+        });
+
+        function handleConvertForm(event, form) {
+            event.preventDefault();
+
+            if (!window.Swal) {
+                form.submit();
+                return;
+            }
+
+            const orderId = form.dataset.orderId;
+            const quoteNumber = form.dataset.quoteNumber || 'N/A';
+            const clientName = form.dataset.clientName || 'N/A';
+            const remainingAmount = Number(form.dataset.remainingAmount) || 0;
+
+            Swal.fire({
+                title: `Convert Order #${orderId}?`,
+                html:
+                    `<p style="margin-bottom: 6px;">Quote: ${quoteNumber}</p>` +
+                    `<p style="margin-bottom: 6px;">Client: ${clientName}</p>` +
+                    `<p style="margin-bottom: 6px;">Remaining amount: ${formatCurrency(remainingAmount)}</p>` +
+                    `<p style="margin-top: 8px; color: #4b5563;">This will create an invoice for all remaining items.</p>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Create invoice',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+            }).then(result => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        }
+
+        function handleDeleteForm(event, form) {
+            event.preventDefault();
+
+            if (!window.Swal) {
+                form.submit();
+                return;
+            }
+
+            const orderNumber = form.dataset.orderNumber || '';
+
+            Swal.fire({
+                title: `Delete Order ${orderNumber}?`,
+                text: 'This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it',
+                cancelButtonText: 'Keep it',
+                reverseButtons: true,
+            }).then(result => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        }
+
+        function handleSendPdfForm(event, form) {
+            event.preventDefault();
+
+            if (!window.Swal) {
+                form.submit();
+                return;
+            }
+
+            const orderNumber = form.dataset.orderNumber || '';
+
+            Swal.fire({
+                title: `Send Order ${orderNumber} PDF?`,
+                text: 'The document will be emailed to the client.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Send it',
+                cancelButtonText: 'Cancel',
+            }).then(result => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        }
+
+        function handleDownloadLink(event, link) {
+            event.preventDefault();
+
+            if (!window.Swal) {
+                window.location.href = link.href;
+                return;
+            }
+
+            const orderNumber = link.dataset.orderNumber || '';
+
+            Swal.fire({
+                title: `Download Order ${orderNumber} PDF?`,
+                text: 'The file will download immediately.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Download',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+            }).then(result => {
+                if (result.isConfirmed) {
+                    window.location.href = link.href;
+                }
+            });
+        }
+
+        function openConversionAlert() {
+            if (!window.Swal) {
+                document.getElementById('convert-all-swal-form')?.submit();
+                return;
+            }
+
+            const issueDefault = '{{ now()->format('Y-m-d') }}';
+            const dueDefault = '{{ now()->addDays(15)->format('Y-m-d') }}';
+            const html = `
+                <div class="space-y-2 text-left">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-1">Option 1</p>
+                        <p class="text-sm font-semibold text-slate-900">Convert All Remaining Items</p>
+                    </div>
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        <label class="text-xs text-slate-600">
+                            <span>Issue Date</span>
+                            <input id="swal-issue-date" type="date" class="swal2-input" value="${issueDefault}">
+                        </label>
+                        <label class="text-xs text-slate-600">
+                            <span>Due Date</span>
+                            <input id="swal-due-date" type="date" class="swal2-input" value="${dueDefault}">
+                        </label>
+                    </div>
+                    <hr class="border-t border-slate-200 my-3">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-1">Option 2</p>
+                        <p class="text-sm font-semibold text-slate-900">Select Specific Items</p>
+                        <p class="text-xs text-slate-500 mt-1">Choose which items to bill using the partial billing table below.</p>
+                    </div>
+                </div>
+            `;
+
+            Swal.fire({
+                title: 'Choose Conversion Method',
+                html,
+                icon: 'question',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Create Full Invoice',
+                denyButtonText: 'Select Specific Items',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusConfirm: false,
+                didOpen: () => {
+                    const issueInput = Swal.getPopup().querySelector('#swal-issue-date');
+                    issueInput?.focus();
+                },
+                preConfirm: () => {
+                    const issueInput = Swal.getPopup().querySelector('#swal-issue-date');
+                    const dueInput = Swal.getPopup().querySelector('#swal-due-date');
+
+                    if (!issueInput?.value || !dueInput?.value) {
+                        Swal.showValidationMessage('Issue and due dates are required.');
+                        return false;
+                    }
+
+                    return {
+                        issue_date: issueInput.value,
+                        due_date: dueInput.value,
+                    };
+                },
+            }).then(result => {
+                const form = document.getElementById('convert-all-swal-form');
+                if (!form) return;
+
+                if (result.isConfirmed && result.value) {
+                    document.getElementById('ssw-issue-date').value = result.value.issue_date;
+                    document.getElementById('ssw-due-date').value = result.value.due_date;
+                    form.submit();
+                    return;
+                }
+
+                if (result.isDenied) {
+                    toggleConvertOptions();
+                }
+            });
+        }
+
+        function formatCurrency(value) {
+            return `₹${value.toFixed(2)}`;
         }
     </script>
 @endsection

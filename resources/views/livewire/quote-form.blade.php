@@ -1,5 +1,5 @@
 <div class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8">
-<form wire:submit.prevent="saveDraft" class="space-y-6">
+<form wire:submit.prevent="saveDraft" class="space-y-6 js-quote-draft-form">
     <div class="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
         <div>
             <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Quote Number</p>
@@ -250,13 +250,13 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-slate-800 transition">
+        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-slate-800 transition js-quote-save-draft">
             Save as Draft
         </button>
         <button
             type="button"
             wire:click.prevent="sendNow"
-            class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-600 transition"
+            class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-600 transition js-quote-send-now"
         >
             Send Now
         </button>
@@ -472,6 +472,43 @@
             });
             recalcTotals();
             recalcTotals();
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const draftForm = document.querySelector('.js-quote-draft-form');
+            draftForm?.addEventListener('submit', (event) => {
+                event.preventDefault();
+                Swal.fire({
+                    title: 'Save draft?',
+                    text: 'The current quote data will be saved as a draft.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Save draft',
+                    cancelButtonText: 'Cancel',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.Livewire?.emit('saveDraft');
+                    }
+                });
+            });
+
+            const sendButton = document.querySelector('.js-quote-send-now');
+            sendButton?.addEventListener('click', (event) => {
+                event.preventDefault();
+                Swal.fire({
+                    title: 'Send quote?',
+                    text: 'Send this quote to the selected client now?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Send now',
+                    cancelButtonText: 'Cancel',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.Livewire?.emit('sendNow');
+                    }
+                });
+            });
         });
     </script>
 </form>

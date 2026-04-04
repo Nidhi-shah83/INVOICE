@@ -44,7 +44,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('invoices.store') }}" class="space-y-6" x-data="invoiceItemsForm(@js($initialItems))">
+        <form method="POST" action="{{ route('invoices.store') }}" id="invoice-create-form" class="space-y-6" x-data="invoiceItemsForm(@js($initialItems))">
             @csrf
 
             <div class="grid gap-4 lg:grid-cols-3">
@@ -201,18 +201,18 @@
 
             <div class="flex flex-wrap gap-3">
                 <button
-                    type="submit"
-                    name="action"
-                    value="draft"
-                    class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-slate-800 transition"
+                    type="button"
+                    data-save-action="draft"
+                    data-save-label="Save Draft"
+                    class="js-save-invoice inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-slate-800 transition"
                 >
                     Save Draft
                 </button>
                 <button
-                    type="submit"
-                    name="action"
-                    value="final"
-                    class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-600 transition"
+                    type="button"
+                    data-save-action="final"
+                    data-save-label="Save Final"
+                    class="js-save-invoice inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-600 transition"
                 >
                     Save Final
                 </button>
@@ -260,6 +260,63 @@
                     return total.toFixed(2);
                 }
             };
+        }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('invoice-create-form');
+            if (!form) return;
+
+            document.querySelectorAll('.js-save-invoice').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    handleInvoiceSave(form, button);
+                });
+            });
+        });
+
+        function handleInvoiceSave(form, button) {
+            const action = button.dataset.saveAction;
+            const label = button.dataset.saveLabel ?? 'Save';
+
+            if (!action) {
+                return;
+            }
+
+            if (!window.Swal) {
+                submitInvoiceForm(form, action);
+                return;
+            }
+
+            const message = action === 'final'
+                ? 'Submit this invoice as final?'
+                : 'Save a draft to revisit later?';
+
+            Swal.fire({
+                title: label,
+                text: message,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: label,
+                cancelButtonText: 'Cancel',
+            }).then(result => {
+                if (result.isConfirmed) {
+                    submitInvoiceForm(form, action);
+                }
+            });
+        }
+
+        function submitInvoiceForm(form, action) {
+            let input = form.querySelector('input[name="action"][type="hidden"]');
+            if (!input) {
+                input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'action';
+                form.appendChild(input);
+            }
+
+            input.value = action;
+            form.submit();
         }
     </script>
 @endsection

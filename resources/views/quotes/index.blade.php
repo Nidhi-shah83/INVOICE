@@ -138,24 +138,22 @@
                                         <a href="{{ route('quotes.show', $quote) }}" class="text-slate-600 hover:text-slate-900">View</a>
                                         <a href="{{ route('quotes.edit', $quote) }}" class="text-slate-600 hover:text-slate-900">Edit</a>
                                         @if ($quote->status !== 'converted')
-                                            <form method="POST" action="{{ route('quotes.convert', $quote) }}" class="inline">
+                                            <form method="POST" action="{{ route('quotes.convert', $quote) }}" class="inline js-quote-convert" data-quote-number="{{ $quote->quote_number }}">
                                                 @csrf
                                                 <button
                                                     type="submit"
                                                     class="text-emerald-600 hover:text-emerald-500"
-                                                    onclick="return confirm('Convert this quote to an order?');"
                                                 >
                                                     Convert to Order
                                                 </button>
                                             </form>
                                         @endif
-                                        <form method="POST" action="{{ route('quotes.destroy', $quote) }}" class="inline">
+                                        <form method="POST" action="{{ route('quotes.destroy', $quote) }}" class="inline js-quote-delete" data-quote-number="{{ $quote->quote_number }}">
                                             @csrf
                                             @method('DELETE')
                                             <button
                                                 type="submit"
                                                 class="text-rose-600 hover:text-rose-500"
-                                                onclick="return confirm('Delete quote {{ $quote->quote_number }}?');"
                                             >
                                                 Delete
                                             </button>
@@ -172,10 +170,53 @@
                         @endforelse
                     </tbody>
                 </table>
-            </div>
-            <div class="mt-4">
-                {{ $quotes->withQueryString()->links() }}
-            </div>
-        </div>
     </div>
+    <div class="mt-4">
+        {{ $quotes->withQueryString()->links() }}
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const convertForms = document.querySelectorAll('.js-quote-convert');
+        convertForms.forEach((form) => {
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const number = form.dataset.quoteNumber ?? 'quote';
+                Swal.fire({
+                    title: `Convert ${number}?`,
+                    text: 'This will turn the quote into an order.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Convert',
+                    cancelButtonText: 'Cancel',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+
+        const deleteForms = document.querySelectorAll('.js-quote-delete');
+        deleteForms.forEach((form) => {
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const number = form.dataset.quoteNumber ?? 'quote';
+                Swal.fire({
+                    title: `Delete ${number}?`,
+                    text: 'This action cannot be undone.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Delete',
+                    cancelButtonText: 'Cancel',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
+</div>
 @endsection
