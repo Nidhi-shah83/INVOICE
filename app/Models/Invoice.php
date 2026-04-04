@@ -92,6 +92,11 @@ class Invoice extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function callLogs()
+    {
+        return $this->hasMany(InvoiceCallLog::class, 'invoice_number', 'invoice_number');
+    }
+
     public function getIsOverdueAttribute(): bool
     {
         return $this->status === 'sent' && $this->due_date?->isPast();

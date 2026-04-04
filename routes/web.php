@@ -34,6 +34,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.updateStatus');
     Route::post('orders/{order}/invoice', [OrderController::class, 'createInvoice'])->name('orders.createInvoice');
     Route::get('invoices/search-suggestions', [InvoiceController::class, 'searchSuggestions'])->name('invoices.searchSuggestions');
+    Route::get('invoices/{invoice_number}/call-logs', [InvoiceController::class, 'getCallLogs'])->name('invoices.callLogs');
     Route::resource('invoices', InvoiceController::class);
     Route::get('invoices/{invoice}/download', [InvoiceController::class, 'download'])->name('invoices.download');
     Route::post('invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
