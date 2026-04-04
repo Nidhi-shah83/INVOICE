@@ -15,14 +15,12 @@
     </head>
     <body class="min-h-screen bg-slate-50 font-inter text-slate-900">
         <main class="flex min-h-screen items-center justify-center px-4">
-            <div class="w-full max-w-md space-y-6">
+            <div class="w-full max-w-2xl space-y-6">
                 <div class="text-center">
                     <p class="text-xs uppercase tracking-[0.3em] text-slate-500">GST-ready invoicing</p>
                     <h1 class="text-3xl font-semibold text-slate-900">{{ config('app.name', 'Invoice App') }}</h1>
                 </div>
-                <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 p-6">
-                    @yield('content')
-                </div>
+                @yield('content')
             </div>
         </main>
     </body>

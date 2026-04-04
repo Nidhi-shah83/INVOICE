@@ -135,17 +135,27 @@
                                 </td>
                                 <td class="px-4 py-3 text-right text-xs font-semibold">
                                     <div class="flex flex-wrap items-center justify-end gap-2">
-                                        <a href="{{ route('quotes.show', $quote) }}" class="text-slate-600 hover:text-slate-900">View</a>
-                                        <a href="{{ route('quotes.edit', $quote) }}" class="text-slate-600 hover:text-slate-900">Edit</a>
+                                        <a
+                                            href="{{ route('quotes.show', $quote) }}"
+                                            class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                        >
+                                            View
+                                        </a>
+                                        <a
+                                            href="{{ route('quotes.edit', $quote) }}"
+                                            class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                        >
+                                            Edit
+                                        </a>
                                         @if ($quote->status !== 'converted')
                                             <form method="POST" action="{{ route('quotes.convert', $quote) }}" class="inline js-quote-convert" data-quote-number="{{ $quote->quote_number }}">
                                                 @csrf
-                                                <button
-                                                    type="submit"
-                                                    class="text-emerald-600 hover:text-emerald-500"
-                                                >
-                                                    Convert to Order
-                                                </button>
+                                            <button
+                                                type="submit"
+                                                class="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 hover:border-emerald-200 hover:bg-emerald-100"
+                                            >
+                                                Convert to Order
+                                            </button>
                                             </form>
                                         @endif
                                         <form method="POST" action="{{ route('quotes.destroy', $quote) }}" class="inline js-quote-delete" data-quote-number="{{ $quote->quote_number }}">
@@ -153,7 +163,7 @@
                                             @method('DELETE')
                                             <button
                                                 type="submit"
-                                                class="text-rose-600 hover:text-rose-500"
+                                                class="inline-flex items-center gap-1 rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-600 hover:border-rose-200 hover:bg-rose-100"
                                             >
                                                 Delete
                                             </button>

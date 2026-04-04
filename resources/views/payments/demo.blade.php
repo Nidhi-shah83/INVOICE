@@ -11,7 +11,7 @@
         }
 
         .payment-shell {
-            max-width: 560px;
+            max-width: 720px;
             margin: 48px auto;
             padding: 0 16px;
         }
@@ -22,6 +22,7 @@
             box-shadow: 0 20px 48px rgba(15, 23, 42, 0.15);
             border: 1px solid var(--card-border);
             overflow: hidden;
+            min-width: 100%;
         }
 
         .payment-header {
