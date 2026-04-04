@@ -49,7 +49,7 @@
         </div>
     </div>
 
-    <div class="grid gap-6 px-6 pb-8 lg:grid-cols-[2fr,1fr]">
+    <div class="space-y-4 px-6 pb-8">
         <div class="space-y-4 rounded-[24px] border border-slate-100 bg-white p-6 shadow-sm">
             <div class="flex items-center justify-between">
                 <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Items</p>
@@ -87,10 +87,10 @@
                 </table>
             </div>
         </div>
-
-        <div class="space-y-4 rounded-[24px] border border-slate-100 bg-slate-50 p-6 shadow-sm h-full">
-            <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Financial Summary</p>
-            <div class="space-y-3 text-sm text-slate-700">
+        <div class="flex justify-end">
+            <div class="w-full max-w-sm space-y-4 rounded-[24px] border border-slate-100 bg-slate-50 p-6 shadow-sm">
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Financial Summary</p>
+                <div class="space-y-3 text-sm text-slate-700">
                 <div class="flex justify-between">
                     <span>Subtotal</span>
                     <span class="font-medium">{{ $formatted($quote->subtotal) }}</span>
