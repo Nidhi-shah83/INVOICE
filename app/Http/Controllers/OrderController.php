@@ -4,7 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Services\InvoiceService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
@@ -27,11 +31,22 @@ class OrderController extends Controller
     {
         $user = $request->user();
         $status = $request->query('status');
+        $activeStatus = $status === 'all' ? null : $status;
+        $search = trim((string) $request->query('search', ''));
 
         $query = Order::with('client')->where('user_id', $user->id);
 
-        if ($status) {
-            $query->where('status', $status);
+        if ($activeStatus) {
+            $query->where('status', $activeStatus);
+        }
+
+        if ($search !== '') {
+            $query->where(function ($sub) use ($search) {
+                $sub->where('order_number', 'like', "%{$search}%")
+                    ->orWhereHas('client', function ($clientQuery) use ($search) {
+                        $clientQuery->where('name', 'like', "%{$search}%");
+                    });
+            });
         }
 
         $orders = $query->orderByDesc('created_at')->paginate(12);
@@ -39,7 +54,8 @@ class OrderController extends Controller
         return view('orders.index', [
             'orders' => $orders,
             'statusTabs' => array_merge(['all'], $this->allowedStatuses),
-            'activeStatus' => $status,
+            'activeStatus' => $activeStatus,
+            'search' => $search,
         ]);
     }
 
@@ -50,6 +66,60 @@ class OrderController extends Controller
         $order->load(['client', 'items', 'invoices']);
 
         return view('orders.show', compact('order'));
+    }
+
+    public function downloadPdf(Request $request, Order $order)
+    {
+        $this->ensureOwnership($order);
+
+        if (! $order->client) {
+            abort(404);
+        }
+
+        $order->load('client', 'items', 'quote');
+
+        $logoPath = public_path('images/logo.png');
+        $logo = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : null;
+
+        $pdf = Pdf::loadView('orders.pdf', compact('order', 'logo'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'dpi' => 150,
+                'defaultFont' => 'DejaVu Sans',
+            ]);
+
+        if ($request->boolean('download')) {
+            return $pdf->download("{$order->order_number}.pdf");
+        }
+
+        return $pdf->stream("{$order->order_number}.pdf");
+    }
+
+    public function sendPdf(Order $order)
+    {
+        $this->ensureOwnership($order);
+
+        $order->load('client', 'items', 'quote');
+        $logoPath = public_path('images/logo.png');
+        $logo = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : null;
+
+        $pdf = Pdf::loadView('orders.pdf', compact('order', 'logo'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'dpi' => 150,
+                'defaultFont' => 'DejaVu Sans',
+            ]);
+
+        $path = 'orders/'.$order->order_number.'.pdf';
+        Storage::disk('public')->put($path, $pdf->output());
+
+        Mail::send('emails.order_sent', ['order' => $order], function ($message) use ($order, $pdf) {
+            $message->to($order->client->email)
+                ->subject("Order {$order->order_number}")
+                ->attachData($pdf->output(), "{$order->order_number}.pdf");
+        });
+
+        return back()->with('status', 'Order PDF sent.');
     }
 
     public function updateStatus(Request $request, Order $order)

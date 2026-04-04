@@ -1,346 +1,529 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta charset="utf-8">
+        <meta charset="UTF-8">
+        <title>Invoice {{ $invoice->invoice_number }}</title>
         <style>
+            @page {
+                size: A4 portrait;
+                margin: 0 !important;
+            }
+
+            html,
             body {
-                font-family: "Times New Roman", Times, serif;
-                font-size: 15px;
-                color: #111111;
                 margin: 0;
                 padding: 0;
             }
 
+            body {
+                background: #f3f4f6;
+                font-family: 'DejaVu Sans', sans-serif;
+                color: #111827;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
             .page {
-                padding: 34px 40px;
-            }
-
-            .top {
                 width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 10px;
-            }
-
-            .top td {
-                vertical-align: top;
-            }
-
-            .invoice-title {
-                font-size: 52px;
-                font-weight: 700;
-                letter-spacing: 0.8px;
-                margin: 0 0 10px;
-            }
-
-            .company-name {
-                font-size: 40px;
-                font-weight: 700;
-                margin: 0 0 4px;
-            }
-
-            .muted-line {
-                margin: 2px 0;
-                font-size: 22px;
-            }
-
-            .logo-box {
-                width: 190px;
-                height: 120px;
-                border: 1px solid #808080;
-                text-align: center;
-                font-size: 16px;
-                font-weight: 700;
-                line-height: 1.4;
-                margin-left: auto;
-                display: table;
-            }
-
-            .logo-box span {
-                display: table-cell;
-                vertical-align: middle;
-            }
-
-            .invoice-meta {
-                margin-top: 12px;
-                text-align: right;
-                font-size: 14px;
-                line-height: 1.35;
-            }
-
-            .pair-table {
-                width: 100%;
-                border-collapse: collapse;
-                table-layout: fixed;
-                margin-top: 14px;
-                margin-bottom: 16px;
-            }
-
-            .pair-table th {
-                background: #d8d8d8;
-                border: 1px solid #8f8f8f;
-                text-align: left;
-                padding: 3px 7px;
-                font-size: 14px;
-            }
-
-            .pair-table td {
-                border: 1px solid #8f8f8f;
-                padding: 6px 7px;
-                font-size: 14px;
-                vertical-align: top;
-                height: 94px;
-            }
-
-            .meta-strip {
-                width: 100%;
-                border-collapse: collapse;
-                table-layout: fixed;
-                margin-bottom: 12px;
-            }
-            /* force single page layout if possible */
-            .page {
-                width: 210mm;
                 min-height: 297mm;
-                padding: 14px;
-                page-break-after: avoid;
-                page-break-inside: avoid;
+                padding: 0;
+                margin: 0;
             }
 
-            .logo-box,
-            .pair-table,
-            .meta-strip,
-            .items,
-            .summary {
-                page-break-inside: avoid;
-            }
-
-            td,
-            th {
-                font-size: 11px;
-                padding: 5px;
-            }
-            .meta-strip th {
-                border: 1px solid #7f7f7f;
-                background: #d8d8d8;
-                text-align: center;
-                font-size: 12px;
-                padding: 4px 3px;
-                font-weight: 700;
-                letter-spacing: 0.35px;
-            }
-
-            .meta-strip td {
-                border: 1px solid #7f7f7f;
-                height: 24px;
-                font-size: 12px;
-                padding: 3px 5px;
-                text-align: center;
-            }
-
-            .items {
-                width: 100%;
+            table {
                 border-collapse: collapse;
+                width: 100%;
+                margin: 0;
+            }
+
+            .header-table {
+                background: #1e2a3a;
+                padding: 12px 10px;
+                color: #ffffff;
+            }
+
+            .header-table td {
+                vertical-align: top;
+                padding: 0;
+            }
+
+            .header-title {
+                font-size: 28px;
+                margin: 0;
+                font-weight: 700;
+            }
+
+            .header-label {
+                font-size: 10px;
+                letter-spacing: 3px;
+                text-transform: uppercase;
+                color: rgba(255, 255, 255, 0.75);
+                margin-bottom: 6px;
+            }
+
+            .meta-table {
+                width: 100%;
+            }
+
+            .meta-label {
+                font-size: 9px;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                color: #8a9bb0;
+                padding-right: 8px;
+                width: 60%;
+            }
+
+            .meta-value {
+                font-size: 11px;
+                letter-spacing: 1px;
+                font-weight: 600;
+                text-transform: uppercase;
+            }
+
+            .contact-row {
+                margin: 16px 0;
+                width: 100%;
+            }
+
+            .contact-box {
+                border: 1px solid #e3e8ef;
+                border-radius: 10px;
+                padding: 16px;
+                background: #ffffff;
+                box-sizing: border-box;
+            }
+
+            .contact-label {
+                font-size: 8px;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                color: #7a8fa6;
+                margin: 0 0 6px;
+            }
+
+            .contact-title {
+                font-size: 12px;
+                font-weight: 700;
+                margin: 0 0 6px;
+                color: #1e2a3a;
+            }
+
+            .contact-text {
+                margin: 2px 0;
+                font-size: 10px;
+                color: #4b5563;
+                line-height: 1.6;
+            }
+
+            .items-table {
+                width: 100%;
+                border: 1px solid #e3e8ef;
+                background: #ffffff;
                 table-layout: fixed;
+                font-size: 10px;
             }
 
-            .items th {
-                border: 1px solid #7f7f7f;
-                background: #d8d8d8;
-                text-align: center;
-                padding: 4px 5px;
-                font-size: 12px;
-                letter-spacing: 0.4px;
+            .items-table thead th {
+                background: #1e2a3a;
+                color: #ffffff;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                font-size: 9px;
+                padding: 10px;
+                border: none;
+                text-align: left;
             }
 
-            .items td {
-                border: 1px solid #7f7f7f;
-                padding: 3px 6px;
-                font-size: 12px;
-                height: 20px;
+            .items-table tbody td {
+                padding: 10px;
+                border-bottom: 1px solid #e8edf4;
+                color: #1f2937;
+                word-break: break-word;
             }
 
-            .num {
+            .items-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+            .items-table td.amount,
+            .items-table th.amount {
                 text-align: right;
                 white-space: nowrap;
             }
 
-            .summary {
+            .summary-panel-wrapper {
+                text-align: right;
+            }
+
+            .summary-panel {
+                background: #ffffff;
+                border: 1px solid #e3e8ef;
+                border-radius: 10px;
+                padding: 12px 14px;
                 width: 100%;
-                border-collapse: collapse;
-                table-layout: fixed;
-                margin-top: -1px;
+                max-width: 320px;
+                display: inline-block;
             }
 
-            .summary td {
-                border: 1px solid #7f7f7f;
+            .fin-table td {
+                padding: 6px 4px;
+            }
+
+            .fin-label {
+                width: 60%;
+                font-size: 10px;
+                color: #374151;
+            }
+
+            .fin-value {
+                width: 40%;
+                font-size: 10px;
+                font-weight: 600;
+                text-align: right;
+                color: #374151;
+                white-space: nowrap;
+            }
+
+            .taxable-row .fin-label,
+            .taxable-row .fin-value {
+                font-weight: 700;
+                color: #1e2a3a;
+            }
+
+            .grand-total .fin-label,
+            .grand-total .fin-value {
                 font-size: 12px;
-                padding: 3px 6px;
+                font-weight: 700;
+                color: #1e2a3a;
+                text-transform: uppercase;
             }
 
-            .summary .notes-title {
-                background: #d8d8d8;
-                font-size: 13px;
+            .paid-row .fin-value {
+                color: #1a7a4a;
+            }
+
+            .balance-row .fin-value {
+                color: #c0392b;
                 font-weight: 700;
             }
 
-            .summary .notes-body {
-                height: 74px;
+            .fin-divider td {
+                padding: 4px 0;
+            }
+
+            .hr-dashed {
+                border: none;
+                border-top: 1px dashed #d0d7e3;
+                margin: 6px 0;
+            }
+
+            .footer-table {
+                margin-top: 18px;
+            }
+
+            .footer-table td {
                 vertical-align: top;
-                font-size: 12px;
+                padding-top: 12px;
             }
 
-            .summary .label {
+            .footer-label {
+                font-size: 8px;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                color: #7a8fa6;
+                margin: 0 0 6px;
+            }
+
+            .footer-text {
+                font-size: 10px;
+                line-height: 1.6;
+                color: #4b5563;
+                margin: 0;
+            }
+
+            .signature-table {
+                margin-top: 18px;
+                width: 100%;
+            }
+
+            .signature-cell {
                 text-align: right;
-                background: #f2f2f2;
+            }
+
+            .signature-label {
+                font-size: 8px;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                color: #7a8fa6;
+                margin: 0 0 6px;
+                white-space: nowrap;
+            }
+
+            .signature-box {
+                width: 100%;
+                height: 54px;
+                border: 1px dashed #b0bac8;
+                border-radius: 6px;
+                margin-bottom: 8px;
+                box-sizing: border-box;
+            }
+
+            .signature-name {
+                margin: 0;
+                font-size: 10px;
                 font-weight: 700;
-                letter-spacing: 0.2px;
+                color: #1e2a3a;
+                white-space: nowrap;
             }
 
-            .summary .value {
-                text-align: right;
-                width: 135px;
+            .hr-solid {
+                border: none;
+                border-top: 1px solid #d0d7e3;
+                margin: 6px 0;
             }
 
-            .summary .total-row td {
-                font-size: 15px;
-                font-weight: 700;
-            }
-
-            .thanks {
-                margin-top: 26px;
+            .stamp {
+                margin-top: 16px;
+                border-top: 1px solid #e3e8ef;
+                padding-top: 10px;
                 text-align: center;
-                font-size: 26px;
-                font-style: italic;
+                font-size: 9px;
+                letter-spacing: 3px;
+                text-transform: uppercase;
+                color: #7a8fa6;
             }
         </style>
     </head>
     <body>
         @php
-            $currencySymbol = config('invoice.currency_symbol', 'Rs ');
-            $lineCount = max(10, $invoice->items->count());
-            $salesTax = (float) $invoice->cgst + (float) $invoice->sgst + (float) $invoice->igst;
-            $issueDate = $invoice->issue_date?->format('F d, Y') ?? 'N/A';
-            $specialNotes = trim((string) ($invoice->notes ?: ''));
-            $terms = trim((string) ($invoice->terms_conditions ?: ''));
-            $notesCombined = trim($specialNotes.' '.($terms !== '' ? '| '.$terms : ''));
+            $currencySymbol = config('invoice.currency_symbol', '₹');
+            $formatMoney = function ($value) {
+                return '&#8377;'.number_format((float) $value, 2);
+            };
+            $invoiceDate = $invoice->issue_date?->format('d M, Y') ?? '-';
+            $dueDate = $invoice->due_date?->format('d M, Y') ?? '-';
+            $company = [
+                'name' => config('company.name', '—'),
+                'address' => config('company.address', '—'),
+                'gstin' => config('company.gstin', '—'),
+            ];
+            $client = $invoice->client;
+            $shipping = [
+                'name' => data_get($invoice, 'ship_to_name') ?: $client?->name ?: '—',
+                'address' => data_get($invoice, 'ship_to_address') ?: $client?->address ?: '—',
+                'gstin' => data_get($invoice, 'ship_to_gstin') ?: $client?->gstin ?: '—',
+            ];
+            $summary = [
+                'subtotal' => (float) ($invoice->subtotal ?? 0),
+                'discount' => (float) ($invoice->discount_amount ?? 0),
+                'taxable_amount' => max(0, (float) ($invoice->subtotal ?? 0) - (float) ($invoice->discount_amount ?? 0)),
+                'cgst' => (float) ($invoice->cgst ?? 0),
+                'sgst' => (float) ($invoice->sgst ?? 0),
+                'igst' => (float) ($invoice->igst ?? 0),
+                'tds' => (float) ($invoice->tds ?? 0),
+                'round_off' => (float) ($invoice->round_off ?? 0),
+                'grand_total' => (float) ($invoice->grand_total ?? $invoice->total ?? 0),
+                'amount_paid' => (float) ($invoice->amount_paid ?? 0),
+                'balance_due' => (float) ($invoice->amount_due ?? max(0, ($invoice->grand_total ?? $invoice->total ?? 0) - ($invoice->amount_paid ?? 0))),
+            ];
+            $bankDetails = [
+                'name' => $invoice->bank_name ?? '—',
+                'account' => $invoice->account_number ?? '—',
+                'ifsc' => $invoice->ifsc_code ?? '—',
+                'branch' => $invoice->bank_branch ?? '—',
+            ];
         @endphp
 
         <div class="page">
-            <table class="top">
+            <table class="header-table" cellpadding="0" cellspacing="0">
                 <tr>
-                    <td>
-                        <p class="invoice-title">INVOICE</p>
-                        <p class="company-name">{{ config('invoice.business_name', 'Your Company Name') }}</p>
-                        <p class="muted-line">{{ config('invoice.company_slogan', '[Your Company Slogan]') }}</p>
-                        <p class="muted-line">{{ config('invoice.address', 'Company Address') }}</p>
-                        <p class="muted-line">{{ config('invoice.city_state_zip', '[City, ST ZIP Code]') }}</p>
-                        <p class="muted-line">Phone {{ config('invoice.phone', 'N/A') }}</p>
+                    <td width="60%">
+                        <p class="header-label">Invoice</p>
+                        <p class="header-title">{{ $invoice->invoice_number }}</p>
                     </td>
-                    <td style="width: 220px;">
-                        <div class="logo-box"><span>COMPANY<br>LOGO HERE</span></div>
-                        <div class="invoice-meta">
-                            <div><strong>INVOICE #</strong> {{ $invoice->invoice_number }}</div>
-                            <div><strong>DATE:</strong> {{ strtoupper($issueDate) }}</div>
+                    <td width="40%">
+                        <table class="meta-table" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td class="meta-label">Status</td>
+                                <td class="meta-value">{{ strtoupper($invoice->status ?? 'draft') }}</td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Invoice Date</td>
+                                <td class="meta-value">{{ strtoupper($invoiceDate) }}</td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Due Date</td>
+                                <td class="meta-value">{{ strtoupper($dueDate) }}</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+            <table class="contact-row" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td width="32%">
+                        <div class="contact-box">
+                            <p class="contact-label">From</p>
+                            <p class="contact-title">{{ $company['name'] }}</p>
+                            <p class="contact-text">{{ $company['address'] }}</p>
+                            <p class="contact-text">GSTIN {{ $company['gstin'] }}</p>
+                        </div>
+                    </td>
+                    <td width="2%"></td>
+                    <td width="32%">
+                        <div class="contact-box">
+                            <p class="contact-label">Bill To</p>
+                            <p class="contact-title">{{ $client?->name ?? '—' }}</p>
+                            <p class="contact-text">{{ $client?->address ?? '—' }}</p>
+                            <p class="contact-text">GSTIN {{ $client?->gstin ?? '—' }}</p>
+                            <p class="contact-text">Email: {{ $client?->email ?? '—' }}</p>
+                            <p class="contact-text">Phone: {{ $client?->phone ?? '—' }}</p>
+                        </div>
+                    </td>
+                    <td width="2%"></td>
+                    <td width="32%">
+                        <div class="contact-box">
+                            <p class="contact-label">Ship To</p>
+                            <p class="contact-title">{{ $shipping['name'] }}</p>
+                            <p class="contact-text">{{ $shipping['address'] }}</p>
+                            <p class="contact-text">GSTIN {{ $shipping['gstin'] }}</p>
                         </div>
                     </td>
                 </tr>
             </table>
 
-            <table class="pair-table">
-                <tr>
-                    <th style="width:50%;">BILL TO:</th>
-                    <th style="width:50%;">SHIP TO:</th>
-                </tr>
-                <tr>
-                    <td>
-                        {{ $invoice->client->name ?? '[Name]' }}<br>
-                        {{ $invoice->client->company_name ?? '[Company Name]' }}<br>
-                        {{ $invoice->client->address ?? '[Street Address]' }}<br>
-                        {{ $invoice->client->city ?? '[City, ST ZIP Code]' }}<br>
-                        {{ $invoice->client->phone ?? '[Phone]' }}
-                    </td>
-                    <td>
-                        {{ $invoice->client->name ?? '[Name]' }}<br>
-                        {{ $invoice->client->company_name ?? '[Company Name]' }}<br>
-                        {{ $invoice->client->address ?? '[Street Address]' }}<br>
-                        {{ $invoice->client->city ?? '[City, ST ZIP Code]' }}<br>
-                        {{ $invoice->client->phone ?? '[Phone]' }}
-                    </td>
-                </tr>
-            </table>
-
-            <table class="meta-strip">
-                <tr>
-                    <th>SALESPERSON</th>
-                    <th>P.O. NUMBER</th>
-                    <th>REQUISITIONER</th>
-                    <th>SHIPPED VIA</th>
-                    <th>F.O.B. POINT</th>
-                    <th>TERMS</th>
-                </tr>
-                <tr>
-                    <td>{{ $invoice->user?->name ?? '-' }}</td>
-                    <td>{{ $invoice->po_number ?: '-' }}</td>
-                    <td>{{ $invoice->reference_no ?: '-' }}</td>
-                    <td>{{ $invoice->shipping_via ?? '-' }}</td>
-                    <td>{{ $invoice->fob_point ?? '-' }}</td>
-                    <td>{{ $invoice->payment_terms ?: '-' }}</td>
-                </tr>
-            </table>
-
-            <table class="items">
-                <colgroup>
-                    <col style="width:16%;">
-                    <col style="width:58%;">
-                    <col style="width:14%;">
-                    <col style="width:12%;">
-                </colgroup>
-                <tr>
-                    <th>QUANTITY</th>
-                    <th>DESCRIPTION</th>
-                    <th>UNIT PRICE</th>
-                    <th>TOTAL</th>
-                </tr>
-                @for ($i = 0; $i < $lineCount; $i++)
-                    @php
-                        $item = $invoice->items[$i] ?? null;
-                    @endphp
+            <table class="items-table" cellpadding="0" cellspacing="0">
+                <thead>
                     <tr>
-                        <td class="num">{{ $item ? number_format((float) $item->qty_billed, 2) : '' }}</td>
-                        <td>{{ $item?->name ?? '' }}</td>
-                        <td class="num">{{ $item ? $currencySymbol.number_format((float) $item->rate, 2) : '' }}</td>
-                        <td class="num">{{ $item ? $currencySymbol.number_format((float) $item->amount, 2) : '' }}</td>
+                        <th style="width:28%;">Item</th>
+                        <th style="width:10%;">Qty</th>
+                        <th style="width:15%;">Rate</th>
+                        <th style="width:16%;">Discount %</th>
+                        <th style="width:12%;">Tax %</th>
+                        <th class="amount" style="width:20%;">Amount</th>
                     </tr>
-                @endfor
+                </thead>
+                <tbody>
+                    @forelse($invoice->items as $item)
+                        <tr>
+                            <td>{{ $item->name }}</td>
+                            <td>{{ number_format($item->qty_billed ?? $item->quantity ?? 0, 2) }}</td>
+                            <td class="amount">{!! $formatMoney($item->rate ?? 0) !!}</td>
+                            <td>{{ number_format($item->discount_percent ?? 0, 2) }}%</td>
+                            <td>{{ number_format($item->gst_percent ?? 0, 2) }}%</td>
+                            <td class="amount">{!! $formatMoney($item->amount ?? 0) !!}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6">No items added.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
             </table>
 
-            <table class="summary">
-                <colgroup>
-                    <col style="width:60%;">
-                    <col style="width:24%;">
-                    <col style="width:16%;">
-                </colgroup>
+            <table class="items-finance" cellpadding="0" cellspacing="0" style="width:100%; margin-top: 12px;">
                 <tr>
-                    <td class="notes-title">Special Notes and Terms:</td>
-                    <td class="label">SUBTOTAL</td>
-                    <td class="value">{{ $currencySymbol }}{{ number_format((float) $invoice->subtotal, 2) }}</td>
-                </tr>
-                <tr>
-                    <td class="notes-body" rowspan="3">{{ $notesCombined !== '' ? $notesCombined : 'Thank you for your business.' }}</td>
-                    <td class="label">SALES TAX</td>
-                    <td class="value">{{ $currencySymbol }}{{ number_format($salesTax, 2) }}</td>
-                </tr>
-                <tr>
-                    <td class="label">SHIPPING &amp; HANDLING</td>
-                    <td class="value">{{ $currencySymbol }}{{ number_format((float) $invoice->round_off, 2) }}</td>
-                </tr>
-                <tr class="total-row">
-                    <td class="label">TOTAL DUE</td>
-                    <td class="value">{{ $currencySymbol }}{{ number_format((float) $invoice->grand_total, 2) }}</td>
+                    <td width="55%" valign="top"></td>
+                    <td width="2%"></td>
+                    <td width="43%" valign="top" style="padding-left: 10px;">
+                        <div class="summary-panel-wrapper">
+                            <div class="summary-panel">
+                                <table class="fin-table" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td class="fin-label">Subtotal</td>
+                                    <td class="fin-value">{!! $formatMoney($summary['subtotal']) !!}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fin-label">Discount</td>
+                                    <td class="fin-value">{!! $formatMoney($summary['discount']) !!}</td>
+                                </tr>
+                                <tr class="taxable-row">
+                                    <td class="fin-label">Taxable Amount</td>
+                                    <td class="fin-value">{!! $formatMoney($summary['taxable_amount']) !!}</td>
+                                </tr>
+                                <tr class="fin-divider">
+                                    <td colspan="2"><hr class="hr-dashed"></td>
+                                </tr>
+                                <tr>
+                                    <td class="fin-label">CGST</td>
+                                    <td class="fin-value">{!! $formatMoney($summary['cgst']) !!}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fin-label">SGST</td>
+                                    <td class="fin-value">{!! $formatMoney($summary['sgst']) !!}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fin-label">IGST</td>
+                                    <td class="fin-value">{!! $formatMoney($summary['igst']) !!}</td>
+                                </tr>
+                                <tr class="fin-divider">
+                                    <td colspan="2"><hr class="hr-dashed"></td>
+                                </tr>
+                                @if($summary['tds'] > 0)
+                                    <tr>
+                                        <td class="fin-label">TDS</td>
+                                        <td class="fin-value">{!! $formatMoney($summary['tds']) !!}</td>
+                                    </tr>
+                                @endif
+                                <tr>
+                                    <td class="fin-label">Round Off</td>
+                                    <td class="fin-value">{!! $formatMoney($summary['round_off']) !!}</td>
+                                </tr>
+                                <tr class="fin-divider">
+                                    <td colspan="2"><hr class="hr-solid"></td>
+                                </tr>
+                                <tr class="grand-total">
+                                    <td class="fin-label">Grand Total</td>
+                                    <td class="fin-value">{!! $formatMoney($summary['grand_total']) !!}</td>
+                                </tr>
+                                <tr class="fin-divider">
+                                    <td colspan="2"><hr class="hr-dashed"></td>
+                                </tr>
+                                <tr class="paid-row">
+                                    <td class="fin-label">Amount Paid</td>
+                                    <td class="fin-value">{!! $formatMoney($summary['amount_paid']) !!}</td>
+                                </tr>
+                                <tr class="balance-row">
+                                    <td class="fin-label">Balance Due</td>
+                                    <td class="fin-value">{!! $formatMoney($summary['balance_due']) !!}</td>
+                                </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </td>
                 </tr>
             </table>
 
-            <p class="thanks">Thank you for your business!</p>
+            <table class="footer-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td width="45%">
+                        <p class="footer-label">Notes</p>
+                        <p class="footer-text">{{ $invoice->notes ?? '—' }}</p>
+                    </td>
+                    <td width="10%"></td>
+                    <td width="45%">
+                        <p class="footer-label">Terms &amp; Conditions</p>
+                        <p class="footer-text">{{ $invoice->terms_conditions ?? '—' }}</p>
+                    </td>
+                </tr>
+            </table>
+
+            <table class="signature-table" cellpadding="0" cellspacing="0" style="width:100%;">
+                <tr>
+                    <td width="50%"></td>
+                    <td width="50%" class="signature-cell" style="padding-left: 10px;">
+                        <p class="signature-label">Digital Signature</p>
+                        <div class="signature-box"></div>
+                        <p class="signature-name">Authorized Signatory</p>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="stamp">Original for Recipient</div>
         </div>
     </body>
 </html>
