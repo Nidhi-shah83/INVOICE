@@ -29,6 +29,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('quotes/{quote}/send', [QuoteController::class, 'send'])->name('quotes.send');
     Route::post('quotes/{quote}/convert', [QuoteController::class, 'convert'])->name('quotes.convert');
     Route::resource('orders', OrderController::class);
+    Route::get('orders/{order}/pdf', [OrderController::class, 'downloadPdf'])->name('orders.pdf');
+    Route::post('orders/{order}/send-pdf', [OrderController::class, 'sendPdf'])->name('orders.sendPdf');
     Route::post('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.updateStatus');
     Route::post('orders/{order}/invoice', [OrderController::class, 'createInvoice'])->name('orders.createInvoice');
     Route::get('invoices/search-suggestions', [InvoiceController::class, 'searchSuggestions'])->name('invoices.searchSuggestions');

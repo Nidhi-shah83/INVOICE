@@ -2,6 +2,23 @@
 
 @section('page-title', $order->order_number)
 
+@section('primary-action')
+    <div class="flex flex-wrap gap-3">
+        <form method="POST" action="{{ route('orders.sendPdf', $order) }}">
+            @csrf
+            <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800 transition">
+                Send PDF
+            </button>
+        </form>
+        <a
+            href="{{ route('orders.pdf', $order) }}?download=1"
+            class="inline-flex items-center gap-2 rounded-full border border-slate-900 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-900 hover:text-white transition"
+        >
+            Download PDF
+        </a>
+    </div>
+@endsection
+
 @section('content')
     <div
         class="space-y-6"
@@ -136,6 +153,23 @@
         @if($order->quote)
             <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <p class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-3">Quote Details</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <a
+                        href="{{ route('orders.pdf', $order) }}?download=1"
+                        class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-900"
+                    >
+                        Download PDF
+                    </a>
+                    <form method="POST" action="{{ route('orders.sendPdf', $order) }}" class="inline">
+                        @csrf
+                        <button
+                            type="submit"
+                            class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white hover:bg-slate-800"
+                        >
+                            Send PDF
+                        </button>
+                    </form>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div>
                         <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Quote #</span>

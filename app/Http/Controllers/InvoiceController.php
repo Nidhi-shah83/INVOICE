@@ -265,7 +265,7 @@ class InvoiceController extends Controller
         $this->authorizeInvoice($invoice);
 
         if ($invoice->pdf_path && Storage::disk('local')->exists($invoice->pdf_path)) {
-            return response()->file(Storage::disk('local')->path($invoice->pdf_path));
+            return Storage::disk('local')->download($invoice->pdf_path, "{$invoice->invoice_number}.pdf");
         }
 
         $pdf = Pdf::loadView('pdf.invoice', compact('invoice'))
