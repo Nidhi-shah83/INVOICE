@@ -204,6 +204,15 @@
                                                 Send
                                             </button>
                                         </form>
+                                        <button
+                                            type="button"
+                                            class="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 hover:text-blue-900 js-view-calls"
+                                            data-invoice-number="{{ $invoice->invoice_number }}"
+                                            data-call-logs-url="{{ route('invoices.callLogs', ['invoice_number' => $invoice->invoice_number]) }}"
+                                            title="View call history for {{ $invoice->invoice_number }}"
+                                        >
+                                            View Calls
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -219,6 +228,40 @@
             </div>
             <div class="mt-4">
                 {{ $invoices->withQueryString()->links() }}
+            </div>
+        </div>
+    </div>
+
+    <div id="invoiceCallLogsModal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+        <div id="invoiceCallLogsBackdrop" class="absolute inset-0 bg-slate-900/50"></div>
+        <div class="relative z-10 flex min-h-full items-center justify-center p-4">
+            <div class="w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                    <h3 id="invoiceCallLogsModalLabel" class="text-lg font-semibold text-slate-900">Call History</h3>
+                    <button
+                        type="button"
+                        id="invoiceCallLogsCloseButton"
+                        class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                        aria-label="Close"
+                    >
+                        ×
+                    </button>
+                </div>
+                <div class="max-h-[70vh] overflow-y-auto px-6 py-4">
+                    <div id="invoiceCallLogsLoading" class="text-sm text-slate-500">Loading call history...</div>
+                    <div id="invoiceCallLogsError" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"></div>
+                    <div id="invoiceCallLogsEmpty" class="hidden rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">No call logs found for this invoice.</div>
+                    <div id="invoiceCallLogsList" class="space-y-3"></div>
+                </div>
+                <div class="flex justify-end border-t border-slate-200 px-6 py-3">
+                    <button
+                        type="button"
+                        id="invoiceCallLogsFooterCloseButton"
+                        class="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                        Close
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -335,6 +378,14 @@
         }
     </script>
     <script>
+        const invoiceCallLogsModal = {
+            root: null,
+            backdrop: null,
+            closeButton: null,
+            footerCloseButton: null,
+            title: null,
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.js-send-invoice').forEach(form => {
                 form.addEventListener('submit', event => handleInvoiceSend(event, form));
@@ -348,7 +399,211 @@
             if (createLink) {
                 createLink.addEventListener('click', event => handleInvoiceCreate(event, createLink));
             }
+
+            initializeCallLogsModal();
+
+            document.querySelectorAll('.js-view-calls').forEach(button => {
+                button.addEventListener('click', () => handleViewCalls(button));
+            });
         });
+
+        function initializeCallLogsModal() {
+            invoiceCallLogsModal.root = document.getElementById('invoiceCallLogsModal');
+            invoiceCallLogsModal.backdrop = document.getElementById('invoiceCallLogsBackdrop');
+            invoiceCallLogsModal.closeButton = document.getElementById('invoiceCallLogsCloseButton');
+            invoiceCallLogsModal.footerCloseButton = document.getElementById('invoiceCallLogsFooterCloseButton');
+            invoiceCallLogsModal.title = document.getElementById('invoiceCallLogsModalLabel');
+
+            if (!invoiceCallLogsModal.root) {
+                return;
+            }
+
+            const closeModal = () => hideCallLogsModal();
+
+            invoiceCallLogsModal.backdrop?.addEventListener('click', closeModal);
+            invoiceCallLogsModal.closeButton?.addEventListener('click', closeModal);
+            invoiceCallLogsModal.footerCloseButton?.addEventListener('click', closeModal);
+
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape' && !invoiceCallLogsModal.root.classList.contains('hidden')) {
+                    closeModal();
+                }
+            });
+        }
+
+        function showCallLogsModal() {
+            if (!invoiceCallLogsModal.root) {
+                return;
+            }
+
+            invoiceCallLogsModal.root.classList.remove('hidden');
+            invoiceCallLogsModal.root.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('overflow-y-hidden');
+        }
+
+        function hideCallLogsModal() {
+            if (!invoiceCallLogsModal.root) {
+                return;
+            }
+
+            invoiceCallLogsModal.root.classList.add('hidden');
+            invoiceCallLogsModal.root.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('overflow-y-hidden');
+        }
+
+        async function handleViewCalls(button) {
+            if (!invoiceCallLogsModal.root || !window.axios) {
+                return;
+            }
+
+            const invoiceNumber = button.dataset.invoiceNumber || 'invoice';
+            const callLogsUrl = button.dataset.callLogsUrl || '';
+
+            if (invoiceCallLogsModal.title) {
+                invoiceCallLogsModal.title.textContent = `Call History - ${invoiceNumber}`;
+            }
+
+            toggleCallLogsState({
+                loading: true,
+                error: '',
+                hasLogs: false,
+            });
+
+            showCallLogsModal();
+
+            try {
+                const response = await window.axios.get(callLogsUrl, {
+                    headers: {
+                        Accept: 'application/json',
+                    },
+                });
+
+                const callLogs = Array.isArray(response?.data?.call_logs) ? response.data.call_logs : [];
+                renderCallLogs(callLogs);
+            } catch (error) {
+                toggleCallLogsState({
+                    loading: false,
+                    error: 'Unable to load call history right now.',
+                    hasLogs: false,
+                });
+            }
+        }
+
+        function renderCallLogs(callLogs) {
+            const listElement = document.getElementById('invoiceCallLogsList');
+            if (!listElement) {
+                return;
+            }
+
+            listElement.innerHTML = '';
+
+            if (!Array.isArray(callLogs) || callLogs.length === 0) {
+                toggleCallLogsState({
+                    loading: false,
+                    error: '',
+                    hasLogs: false,
+                });
+
+                return;
+            }
+
+            callLogs.forEach(callLog => {
+                const card = document.createElement('div');
+                card.className = 'rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
+                card.innerHTML = `
+                    <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h6 class="mb-1 text-sm font-semibold text-slate-800">Call Date/Time</h6>
+                            <p class="mb-0 text-sm text-slate-600">${escapeHtml(formatDateTime(callLog.call_started_at))}${callLog.call_ended_at ? ` - ${escapeHtml(formatDateTime(callLog.call_ended_at))}` : ''}</p>
+                        </div>
+                        <div class="text-left sm:text-right">
+                            <h6 class="mb-1 text-sm font-semibold text-slate-800">Promised Payment Date</h6>
+                            <p class="mb-0 text-sm text-slate-600">${escapeHtml(formatDate(callLog.promised_payment_date))}</p>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-1 text-sm font-semibold text-slate-800">Notes</h6>
+                        <p class="mb-0 text-sm text-slate-600">${escapeHtml(callLog.notes || 'N/A')}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-1 text-sm font-semibold text-slate-800">Confidence</h6>
+                        <p class="mb-0 text-sm text-slate-600">${escapeHtml(callLog.confidence || 'N/A')}</p>
+                    </div>
+                    <div>
+                        <h6 class="mb-2 text-sm font-semibold text-slate-800">Conversation</h6>
+                        <pre class="mb-0 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700" style="white-space: pre-wrap;">${escapeHtml(callLog.conversation || 'N/A')}</pre>
+                    </div>
+                `;
+
+                listElement.appendChild(card);
+            });
+
+            toggleCallLogsState({
+                loading: false,
+                error: '',
+                hasLogs: true,
+            });
+        }
+
+        function toggleCallLogsState({ loading, error, hasLogs }) {
+            const loadingElement = document.getElementById('invoiceCallLogsLoading');
+            const errorElement = document.getElementById('invoiceCallLogsError');
+            const emptyElement = document.getElementById('invoiceCallLogsEmpty');
+
+            if (loadingElement) {
+                loadingElement.classList.toggle('hidden', !loading);
+            }
+
+            if (errorElement) {
+                errorElement.textContent = error || '';
+                errorElement.classList.toggle('hidden', !error);
+            }
+
+            if (emptyElement) {
+                const shouldShowEmpty = !loading && !error && !hasLogs;
+                emptyElement.classList.toggle('hidden', !shouldShowEmpty);
+            }
+        }
+
+        function formatDateTime(value) {
+            if (!value) {
+                return 'N/A';
+            }
+
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return 'N/A';
+            }
+
+            return new Intl.DateTimeFormat('en-IN', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+            }).format(date);
+        }
+
+        function formatDate(value) {
+            if (!value) {
+                return 'N/A';
+            }
+
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return value;
+            }
+
+            return new Intl.DateTimeFormat('en-IN', {
+                dateStyle: 'medium',
+            }).format(date);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         function handleInvoiceSend(event, form) {
             event.preventDefault();

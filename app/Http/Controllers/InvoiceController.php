@@ -125,6 +125,35 @@ class InvoiceController extends Controller
         ]);
     }
 
+    public function getCallLogs(string $invoice_number): JsonResponse
+    {
+        $invoice = Invoice::query()
+            ->where('user_id', (int) auth()->id())
+            ->where('invoice_number', $invoice_number)
+            ->firstOrFail();
+
+        $callLogs = $invoice->callLogs()
+            ->orderByDesc('call_started_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn ($log): array => [
+                'id' => $log->id,
+                'invoice_number' => (string) $log->invoice_number,
+                'promised_payment_date' => $log->promised_payment_date?->toDateString(),
+                'confidence' => $log->confidence,
+                'notes' => $log->notes,
+                'conversation' => $log->conversation,
+                'call_started_at' => $log->call_started_at?->toIso8601String(),
+                'call_ended_at' => $log->call_ended_at?->toIso8601String(),
+            ])
+            ->values();
+
+        return response()->json([
+            'invoice_number' => $invoice->invoice_number,
+            'call_logs' => $callLogs,
+        ]);
+    }
+
     public function create(Request $request): View
     {
         $prefill = session('invoice_draft', []);
