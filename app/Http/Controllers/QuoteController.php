@@ -121,7 +121,7 @@ class QuoteController extends Controller
         $quote->accepted_at = null;
         $quote->save();
 
-        $pdf = Pdf::loadView('pdf.quote', compact('quote'));
+        $pdf = Pdf::loadView('quotes.pdf', compact('quote'));
         $path = 'quotes/'.$quote->quote_number.'.pdf';
         Storage::disk('public')->put($path, $pdf->output());
 
@@ -143,10 +143,37 @@ class QuoteController extends Controller
 
         $quote->load('client', 'items');
 
-        $pdf = Pdf::loadView('pdf.quote', compact('quote'))
-            ->setPaper('a4', 'portrait');
+        $pdf = Pdf::loadView('quotes.pdf', compact('quote'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'dpi' => 150,
+                'defaultFont' => 'DejaVu Sans',
+            ]);
 
         return $pdf->download("{$quote->quote_number}.pdf");
+    }
+
+    public function downloadPdf(Request $request, Quote $quote)
+    {
+        $this->ensureOwnership($quote);
+
+        $quote->load('client', 'items');
+
+        $logoPath = public_path('images/logo.png');
+        $logo = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : null;
+
+        $pdf = Pdf::loadView('quotes.pdf', compact('quote', 'logo'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'dpi' => 150,
+                'defaultFont' => 'DejaVu Sans',
+            ]);
+
+        if ($request->boolean('download')) {
+            return $pdf->download("{$quote->quote_number}.pdf");
+        }
+
+        return $pdf->stream("{$quote->quote_number}.pdf");
     }
 
     public function convert(Quote $quote)

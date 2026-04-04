@@ -25,6 +25,7 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('clients', ClientController::class);
     Route::resource('quotes', QuoteController::class);
     Route::get('quotes/{quote}/download', [QuoteController::class, 'download'])->name('quotes.download');
+    Route::get('quotes/{quote}/pdf', [QuoteController::class, 'downloadPdf'])->name('quotes.pdf');
     Route::post('quotes/{quote}/send', [QuoteController::class, 'send'])->name('quotes.send');
     Route::post('quotes/{quote}/convert', [QuoteController::class, 'convert'])->name('quotes.convert');
     Route::resource('orders', OrderController::class);
