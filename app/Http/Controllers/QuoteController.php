@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Quote;
 use App\Services\InvoiceService;
 use App\Services\QuoteService;
+use App\Services\SettingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -20,6 +21,7 @@ class QuoteController extends Controller
     public function __construct(
         protected QuoteService $quoteService,
         protected InvoiceService $invoiceService,
+        protected SettingService $settingService,
     ) {
         $this->middleware('auth:sanctum')->except('accept');
     }
@@ -79,7 +81,19 @@ class QuoteController extends Controller
 
         $quote->load('items');
 
-        return view('quotes.show', compact('quote'));
+        $businessSettings = $this->settingService->getMany([
+            'business_name',
+            'gstin',
+            'address',
+            'state',
+            'email',
+            'phone',
+        ]);
+
+        return view('quotes.show', [
+            'quote' => $quote,
+            'businessSettings' => $businessSettings,
+        ]);
     }
 
     public function edit(Quote $quote)

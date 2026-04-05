@@ -9,6 +9,16 @@
     ];
 @endphp
 
+@php
+    $businessData = array_merge([
+        'business_name' => config('invoice.business_name', 'Invoice Pro'),
+        'address' => config('company.address', '123 Corporate Blvd, City, State ZIP'),
+        'gstin' => config('invoice.gstin', 'XXX0000XXXX'),
+        'email' => config('invoice.email', 'contact@example.com'),
+        'phone' => config('invoice.phone', ''),
+    ], $businessInfo ?? []);
+@endphp
+
 <div class="rounded-[28px] border border-slate-200 bg-white shadow-xl overflow-hidden">
     <div class="bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -27,11 +37,15 @@
     <div class="grid gap-6 px-6 py-8 lg:grid-cols-[1fr,1fr]">
         <div class="space-y-2 rounded-2xl border border-slate-100 bg-slate-50 p-4">
             <p class="text-xs uppercase tracking-[0.4em] text-slate-500">From</p>
-            <p><strong>{{ config('invoice.business_name') }}</strong></p>
-            <p>{{ config('invoice.address_line') ?? '123 Corporate Blvd, City, State ZIP' }}</p>
-            <p>GSTIN {{ config('invoice.gstin') }}</p>
-            <p>{{ config('invoice.email') }}</p>
-            <p>{{ config('invoice.phone') }}</p>
+            <p><strong>{{ $businessData['business_name'] }}</strong></p>
+            <p>{{ $businessData['address'] }}</p>
+            <p>GSTIN {{ $businessData['gstin'] }}</p>
+            @if(!empty($businessData['email']))
+                <p>{{ $businessData['email'] }}</p>
+            @endif
+            @if(!empty($businessData['phone']))
+                <p>{{ $businessData['phone'] }}</p>
+            @endif
         </div>
         <div class="space-y-2 rounded-2xl border border-slate-100 bg-slate-50 p-4">
             <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Bill To</p>

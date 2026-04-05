@@ -33,7 +33,17 @@
         @php
             $currencySymbol = config('invoice.currency_symbol', '₹');
         @endphp
-        @include('quotes.partials.card', compact('currencySymbol'))
+        @php
+            $businessDefaults = [
+                'business_name' => config('invoice.business_name', 'Invoice Pro'),
+                'address' => config('company.address', '123 Corporate Blvd, City, State ZIP'),
+                'gstin' => config('invoice.gstin', 'XXX0000XXXX'),
+                'email' => config('invoice.email', 'contact@example.com'),
+                'phone' => config('invoice.phone', ''),
+            ];
+            $businessInfo = array_filter(array_replace($businessDefaults, $businessSettings ?? []), fn ($value) => $value !== null && $value !== '');
+        @endphp
+        @include('quotes.partials.card', compact('currencySymbol', 'businessInfo'))
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {

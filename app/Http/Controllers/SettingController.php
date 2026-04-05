@@ -30,6 +30,9 @@ class SettingController extends Controller
             'state' => '',
             'business_logo' => null,
             'favicon' => null,
+            'email' => SettingService::defaultFor('email') ?? config('invoice.email', ''),
+            'phone' => SettingService::defaultFor('phone') ?? '',
+            'terms_conditions' => SettingService::defaultFor('terms_conditions') ?? '',
 
             // Invoice
             'invoice_prefix' => config('invoice.invoice_prefix', 'INV'),
@@ -86,6 +89,8 @@ class SettingController extends Controller
             'state' => ['required', 'string', 'max:255'],
             'logo' => ['nullable', 'image'],
             'favicon' => ['nullable', 'image'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'terms_conditions' => ['nullable', 'string', 'max:2000'],
         ]);
 
         if ($request->hasFile('logo')) {
@@ -105,6 +110,8 @@ class SettingController extends Controller
             'address' => $validated['address'] ?? null,
             'country' => 'India',
             'state' => $validated['state'] ?? null,
+            'email' => $validated['email'] ?? null,
+            'terms_conditions' => $validated['terms_conditions'] ?? null,
         ];
 
         foreach ($fields as $key => $value) {

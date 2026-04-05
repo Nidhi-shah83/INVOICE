@@ -74,21 +74,21 @@
                 <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.32em] text-slate-600">Business</span>
             </div>
 
-            <div class="grid gap-4 lg:grid-cols-2">
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700" for="business_name">Business Name</label>
-                    <input id="business_name" name="business_name" type="text" value="{{ old('business_name', $settings['business_name']) }}" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-200" />
-                </div>
+                <div class="grid gap-4 lg:grid-cols-2">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700" for="business_name">Business Name</label>
+                        <input id="business_name" name="business_name" type="text" value="{{ old('business_name', $settings['business_name']) }}" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-200" />
+                    </div>
 
                 <div>
                     <label class="block text-sm font-semibold text-slate-700" for="gstin">GSTIN</label>
                     <input id="gstin" name="gstin" type="text" value="{{ old('gstin', $settings['gstin']) }}" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm uppercase shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-200" />
                 </div>
 
-                <div class="lg:col-span-2">
-                    <label class="block text-sm font-semibold text-slate-700" for="address">Address</label>
-                    <textarea id="address" name="address" rows="3" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-200">{{ old('address', $settings['address']) }}</textarea>
-                </div>
+                    <div class="lg:col-span-2">
+                        <label class="block text-sm font-semibold text-slate-700" for="address">Address</label>
+                        <textarea id="address" name="address" rows="3" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-200">{{ old('address', $settings['address']) }}</textarea>
+                    </div>
 
                 <div>
                     <label class="block text-sm font-semibold text-slate-700" for="country_display">Country</label>
@@ -132,6 +132,16 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label class="block text-sm font-semibold text-slate-700" for="email">Business Email</label>
+                    <input id="email" name="email" type="email" value="{{ old('email', $settings['email']) }}" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-200" />
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label class="block text-sm font-semibold text-slate-700" for="terms_conditions">Terms &amp; Conditions</label>
+                    <textarea id="terms_conditions" name="terms_conditions" rows="3" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-200">{{ old('terms_conditions', $settings['terms_conditions']) }}</textarea>
                 </div>
             </div>
 
