@@ -359,7 +359,7 @@ class InvoiceService extends ModuleService
                 'discount_type' => $invoiceTotals['discount_type'],
                 'discount_value' => $invoiceTotals['discount_value'],
                 'discount_amount' => $invoiceTotals['discount_amount'],
-                'currency' => config('invoice.currency', 'INR'),
+                'currency' => $this->settings->get('currency', config('invoice.currency', 'INR')),
             ]);
 
             $order->billed_amount += $invoiceTotals['grand_total'];

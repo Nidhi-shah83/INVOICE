@@ -282,7 +282,7 @@
     </head>
     <body>
         @php
-            $currencySymbol = config('invoice.currency_symbol', '₹');
+            $currencySymbol = $settingsService->get('currency_symbol', config('invoice.currency_symbol', '₹'));
             $subtotal = $order->items->sum(fn ($item) => $item->qty * $item->rate);
             $billed = $order->billed_amount;
             $remaining = $order->total_amount - $order->billed_amount;
@@ -290,10 +290,13 @@
             $issuedOn = $order->created_at?->format('d M, Y') ?? '-';
             $dueDate = $order->quote?->validity_date?->format('d M, Y') ?? '-';
             $logo = $logo ?? null;
-            if (! $logo && ! empty($settingsService->get('logo'))) {
-                $logoPath = storage_path('app/public/' . $settingsService->get('logo'));
-                if (file_exists($logoPath)) {
-                    $logo = base64_encode(file_get_contents($logoPath));
+            if (! $logo) {
+                $businessLogo = $settingsService->get('business_logo') ?: $settingsService->get('logo');
+                if (! empty($businessLogo)) {
+                    $logoPath = storage_path('app/public/' . $businessLogo);
+                    if (file_exists($logoPath)) {
+                        $logo = base64_encode(file_get_contents($logoPath));
+                    }
                 }
             }
             if (! $logo) {

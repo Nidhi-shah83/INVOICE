@@ -4,6 +4,7 @@
 
 @php
     $viewOnly = request()->boolean('view');
+    $currencySymbol = setting('currency_symbol', config('invoice.currency_symbol', 'Rs '));
 @endphp
 
 @section('primary-action')
@@ -33,7 +34,7 @@
             paymentStatus: @js((string) $invoice->payment_status),
             invoiceStatus: @js((string) $invoice->status),
             isOverdue: @js((bool) $invoice->is_overdue),
-            currencySymbol: @js(config('invoice.currency_symbol', 'Rs ')),
+            currencySymbol: @js(setting('currency_symbol', config('invoice.currency_symbol', 'Rs '))),
             defaultOrderId: @js((string) ($invoice->order?->order_number ?? $invoice->razorpay_order_id ?? $invoice->invoice_number)),
             invoiceNumber: @js($invoice->invoice_number),
         })"
@@ -58,9 +59,9 @@
             <div class="grid gap-6 px-6 py-8 lg:grid-cols-[1fr,1fr]">
                 <div class="space-y-2 rounded-2xl border border-slate-100 bg-slate-50 p-4">
                     <p class="text-xs uppercase tracking-[0.4em] text-slate-500">From</p>
-                    <p><strong>{{ config('invoice.business_name') }}</strong></p>
-                    <p>{{ config('invoice.address_line') ?? '123 Corporate Blvd, City, State ZIP' }}</p>
-                    <p>GSTIN {{ config('invoice.gstin') }}</p>
+                    <p><strong>{{ setting('business_name') }}</strong></p>
+                    <p>{{ setting('address', config('invoice.address_line', '123 Corporate Blvd, City, State ZIP')) }}</p>
+                    <p>GSTIN {{ setting('gstin') }}</p>
                     <p>{{ config('invoice.email') }}</p>
                     <p>{{ config('invoice.phone') }}</p>
                 </div>
@@ -117,9 +118,9 @@
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-3 py-3 font-semibold text-slate-900">{{ $item->name }}</td>
                                     <td class="px-3 py-3">{{ number_format($item->qty_billed, 2) }}</td>
-                                    <td class="px-3 py-3">{{ config('invoice.currency_symbol', 'Rs ') }}{{ number_format($item->rate, 2) }}</td>
+                                    <td class="px-3 py-3">{{ $currencySymbol }}{{ number_format($item->rate, 2) }}</td>
                                     <td class="px-3 py-3">{{ number_format($item->gst_percent, 2) }}%</td>
-                                    <td class="px-3 py-3 text-right font-semibold text-slate-900">{{ config('invoice.currency_symbol', 'Rs ') }}{{ number_format($item->amount, 2) }}</td>
+                                    <td class="px-3 py-3 text-right font-semibold text-slate-900">{{ $currencySymbol }}{{ number_format($item->amount, 2) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -134,31 +135,31 @@
                     <div class="space-y-2 text-sm text-slate-700 divide-y divide-slate-200">
                         <div class="flex justify-between pb-2">
                             <span>Subtotal</span>
-                            <span class="font-medium">{{ config('invoice.currency_symbol', 'Rs ') }}{{ number_format($invoice->subtotal, 2) }}</span>
+                            <span class="font-medium">{{ $currencySymbol }}{{ number_format($invoice->subtotal, 2) }}</span>
                         </div>
                         <div class="flex justify-between py-2">
                             <span>Discount</span>
-                            <span class="font-medium">{{ $invoice->discount_type === 'percent' ? number_format($invoice->discount_value, 2).'%' : config('invoice.currency_symbol', 'Rs ').number_format($invoice->discount_value, 2) }}</span>
+                            <span class="font-medium">{{ $invoice->discount_type === 'percent' ? number_format($invoice->discount_value, 2).'%' : $currencySymbol . number_format($invoice->discount_value, 2) }}</span>
                         </div>
                         <div class="flex justify-between py-2">
                             <span>Discount Amount</span>
-                            <span class="font-medium">{{ config('invoice.currency_symbol', 'Rs ') }}{{ number_format($invoice->discount_amount, 2) }}</span>
+                            <span class="font-medium">{{ $currencySymbol }}{{ number_format($invoice->discount_amount, 2) }}</span>
                         </div>
                         <div class="flex justify-between py-2">
                             <span>CGST</span>
-                            <span class="font-medium">{{ config('invoice.currency_symbol', 'Rs ') }}{{ number_format($invoice->cgst, 2) }}</span>
+                            <span class="font-medium">{{ $currencySymbol }}{{ number_format($invoice->cgst, 2) }}</span>
                         </div>
                         <div class="flex justify-between py-2">
                             <span>SGST</span>
-                            <span class="font-medium">{{ config('invoice.currency_symbol', 'Rs ') }}{{ number_format($invoice->sgst, 2) }}</span>
+                            <span class="font-medium">{{ $currencySymbol }}{{ number_format($invoice->sgst, 2) }}</span>
                         </div>
                         <div class="flex justify-between py-2">
                             <span>IGST</span>
-                            <span class="font-medium">{{ config('invoice.currency_symbol', 'Rs ') }}{{ number_format($invoice->igst, 2) }}</span>
+                            <span class="font-medium">{{ $currencySymbol }}{{ number_format($invoice->igst, 2) }}</span>
                         </div>
                         <div class="flex justify-between py-2">
                             <span>Round Off</span>
-                            <span class="font-medium">{{ config('invoice.currency_symbol', 'Rs ') }}{{ number_format($invoice->round_off, 2) }}</span>
+                            <span class="font-medium">{{ $currencySymbol }}{{ number_format($invoice->round_off, 2) }}</span>
                         </div>
                     </div>
                 </div>

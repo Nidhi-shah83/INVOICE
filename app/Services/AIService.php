@@ -16,6 +16,10 @@ class AIService
 
     public function parseInvoiceText(string $text): array
     {
+        if (! $this->settings->get('enable_ai_agent', true)) {
+            throw new RuntimeException('AI agent is disabled for your account.');
+        }
+
         if (! $this->settings->get('enable_ai_calls', true)) {
             throw new RuntimeException('AI calls are disabled for your account.');
         }
@@ -49,6 +53,14 @@ class AIService
 
     public function tagExpense(int $id, string $desc): void
     {
+        if (! $this->settings->get('enable_ai_agent', true)) {
+            return;
+        }
+
+        if (! $this->settings->get('enable_ai_calls', true)) {
+            return;
+        }
+
         $webhook = (string) config('services.n8n.webhook_expense');
 
         if (blank($webhook)) {

@@ -4,9 +4,23 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        @php
+            $brandName = setting('business_name', config('app.name', 'Invoice App'));
+            $pageTitle = trim($__env->yieldContent('page-title'));
+            $faviconPath = setting('favicon');
+            $faviconPath = is_string($faviconPath) ? ltrim(preg_replace('#^/?storage/#', '', $faviconPath), '/') : null;
+            $faviconUrl = asset('favicon.ico');
 
-        <title>{{ config('app.name', 'Invoice App') }}</title>
+            if (! empty($faviconPath) && \Illuminate\Support\Facades\Storage::disk('public')->exists($faviconPath)) {
+                $faviconMime = \Illuminate\Support\Facades\Storage::disk('public')->mimeType($faviconPath) ?: 'image/png';
+                $faviconUrl = 'data:'.$faviconMime.';base64,'.base64_encode(\Illuminate\Support\Facades\Storage::disk('public')->get($faviconPath));
+            }
+        @endphp
 
+        <title>{{ $pageTitle !== '' ? $pageTitle.' | '.$brandName : $brandName }}</title>
+        <link rel="icon" type="image/png" href="{{ $faviconUrl }}">
+
+        
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,6 +29,14 @@
         @livewireStyles
     </head>
     <body class="font-inter bg-slate-50 text-slate-900">
+        @php
+            $businessLogo = setting('business_logo') ?: setting('logo');
+            $businessName = setting('business_name', 'Invoice Portal');
+            $businessInitial = strtoupper(substr($businessName, 0, 2));
+            $businessGstin = setting('gstin', '');
+            $stateName = setting('state');
+            $dueDays = setting('default_due_days', 15);
+        @endphp
         <div x-data="{ sidebarOpen: false }" class="min-h-screen flex">
             <div
                 x-show="sidebarOpen"
@@ -29,9 +51,12 @@
                 :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full' + ' lg:translate-x-0'"
             >
                 <div class="flex items-center justify-between px-6 py-5 border-b border-white/10">
-                    <div>
-                        <p class="text-sm uppercase tracking-[0.2em] text-slate-200">{{ config('invoice.business_name') }}</p>
-                        <p class="text-xs text-white/80">GSTIN: {{ config('invoice.gstin', 'XX0000XXXX') }}</p>
+                    <div class="flex items-center gap-3">
+            
+                        <div>
+                            <p class="text-sm uppercase tracking-[0.2em] text-slate-200">{{ $businessName }}</p>
+                            <p class="text-xs text-white/80">GSTIN: {{ $businessGstin }}</p>
+                        </div>
                     </div>
                     <button class="lg:hidden" @click="sidebarOpen = false">
                         <span class="sr-only">Close sidebar</span>
@@ -67,9 +92,11 @@
                 </nav>
 
                 <div class="px-4 py-6 bg-white/5">
-                    <p class="text-xs uppercase tracking-[0.3em] text-white/70">State</p>
-                    <p class="text-sm font-semibold">{{ config('invoice.state', 'Karnataka') }}</p>
-                    <p class="text-xs text-white/60">Due days: {{ config('invoice.default_due_days', 15) }}</p>
+                    @if($stateName)
+                        <p class="text-xs uppercase tracking-[0.3em] text-white/70">State</p>
+                        <p class="text-sm font-semibold">{{ $stateName }}</p>
+                    @endif
+                    <p class="text-xs text-white/60">Due days: {{ $dueDays }}</p>
                 </div>
             </aside>
 
@@ -86,7 +113,7 @@
                             </svg>
                         </button>
                         <div>
-                            <p class="text-xs uppercase tracking-widest text-slate-400">{{ config('invoice.invoice_prefix', 'INV') }} Portal</p>
+                            <p class="text-xs uppercase tracking-widest text-slate-400">{{ setting('invoice_prefix', config('invoice.invoice_prefix', 'INV')) }} Portal</p>
                             <h1 class="text-2xl font-semibold text-slate-900">@yield('page-title', 'Dashboard')</h1>
                         </div>
                     </div>
