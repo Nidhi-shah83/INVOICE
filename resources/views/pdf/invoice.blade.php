@@ -299,9 +299,9 @@
     </head>
     <body>
         @php
-            $currencySymbol = config('invoice.currency_symbol', '₹');
-            $formatMoney = function ($value) {
-                return '&#8377;'.number_format((float) $value, 2);
+            $currencySymbol = $settingsService->get('currency_symbol', config('invoice.currency_symbol', '₹'));
+            $formatMoney = function ($value) use ($currencySymbol) {
+                return $currencySymbol . number_format((float) $value, 2);
             };
             $invoiceDate = $invoice->issue_date?->format('d M, Y') ?? '-';
             $dueDate = $invoice->due_date?->format('d M, Y') ?? '-';
@@ -312,8 +312,9 @@
             ];
             $client = $invoice->client;
             $logo = null;
-            if (! empty($settingsService->get('logo'))) {
-                $logoPath = storage_path('app/public/' . $settingsService->get('logo'));
+            $businessLogo = $settingsService->get('business_logo') ?: $settingsService->get('logo');
+            if (! empty($businessLogo)) {
+                $logoPath = storage_path('app/public/' . $businessLogo);
                 if (file_exists($logoPath)) {
                     $logo = base64_encode(file_get_contents($logoPath));
                 }

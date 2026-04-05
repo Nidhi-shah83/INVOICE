@@ -58,7 +58,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.markRead');
     Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
-    Route::patch('settings', [SettingController::class, 'update'])->name('settings.update');
+    Route::patch('settings/business', [SettingController::class, 'updateBusiness'])->name('settings.update.business');
+    Route::patch('settings/invoice', [SettingController::class, 'updateInvoice'])->name('settings.update.invoice');
+    Route::patch('settings/email', [SettingController::class, 'updateEmail'])->name('settings.update.email');
+    Route::patch('settings/payment', [SettingController::class, 'updatePayment'])->name('settings.update.payment');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
