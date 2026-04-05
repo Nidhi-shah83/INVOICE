@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
@@ -29,11 +30,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('quotes/{quote}/pdf', [QuoteController::class, 'downloadPdf'])->name('quotes.pdf');
     Route::post('quotes/{quote}/send', [QuoteController::class, 'send'])->name('quotes.send');
     Route::post('quotes/{quote}/convert', [QuoteController::class, 'convert'])->name('quotes.convert');
+
     Route::resource('orders', OrderController::class);
     Route::get('orders/{order}/pdf', [OrderController::class, 'downloadPdf'])->name('orders.pdf');
     Route::post('orders/{order}/send-pdf', [OrderController::class, 'sendPdf'])->name('orders.sendPdf');
     Route::post('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.updateStatus');
     Route::post('orders/{order}/invoice', [OrderController::class, 'createInvoice'])->name('orders.createInvoice');
+
     Route::get('invoices/search-suggestions', [InvoiceController::class, 'searchSuggestions'])->name('invoices.searchSuggestions');
     Route::get('invoices/{invoice_number}/call-logs', [InvoiceController::class, 'getCallLogs'])->name('invoices.callLogs');
     Route::resource('invoices', InvoiceController::class);
@@ -42,11 +45,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('invoices/overdue', [InvoiceController::class, 'overdue'])->name('invoices.overdue');
     Route::patch('invoices/{invoice}/paid', [InvoiceController::class, 'markPaid'])->name('invoices.markPaid');
     Route::post('invoices/{invoice}/paid/manual', [InvoiceController::class, 'markPaidManually'])->name('invoices.markPaidManual');
+
     Route::get('ai-assistant', [AIController::class, 'chat'])->name('ai-assistant.index');
     Route::get('ai-assistant/chat', [AIController::class, 'chat'])->name('ai-assistant.chat');
     Route::post('ai-assistant/parse', [AIController::class, 'parse'])->name('ai-assistant.parse');
+
     Route::resource('reports', ReportController::class);
+    Route::resource('products', ProductController::class)->only(['index', 'store', 'destroy', 'edit', 'update']);
     Route::get('reports-export', [ReportController::class, 'export'])->name('reports.export');
+
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.markRead');

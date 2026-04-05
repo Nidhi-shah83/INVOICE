@@ -118,9 +118,17 @@
                         @foreach ($items as $index => $item)
                             <tr wire:key="item-{{ $index }}" data-quote-item>
                                 <td class="px-4 py-3">
-                                    <input type="text"
+                                    <select
+                                        id="item-{{ $index }}-name"
+                                        data-quote-item-name
                                         wire:model="items.{{ $index }}.name"
-                                        class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                                        class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                    >
+                                        <option value="">Item</option>
+                                        @foreach ($products as $product)
+                                            <option value="{{ $product->name }}">{{ $product->name }}</option>
+                                        @endforeach
+                                    </select>
                                 </td>
 
                                 <td class="px-4 py-3">
@@ -276,6 +284,14 @@
             ],
         ];
     })->toArray();
+    $quoteProductCatalog = $products->mapWithKeys(function ($product) {
+        return [
+            $product->name => [
+                'rate' => (float) $product->rate,
+                'gst_percent' => (float) $product->gst_percent,
+            ],
+        ];
+    })->toArray();
 @endphp
 
     <script>
@@ -382,6 +398,7 @@
                 const readable = Number.isFinite(numeric) ? formatter.format(numeric) : '0.00';
                 return `${currencySymbol}${readable}`;
             };
+            const productCatalog = @json($quoteProductCatalog);
 
             const summaryFields = {
                 subtotal: summaryCard?.querySelector('[data-summary-field="subtotal"]'),
@@ -468,6 +485,31 @@
             itemsTable?.addEventListener('input', (event) => {
                 if (event.target.matches('[data-qty-input], [data-rate-input], [data-gst-input], [data-discount-input]')) {
                     recalcTotals();
+                }
+            });
+            itemsTable?.addEventListener('change', (event) => {
+                if (!event.target.matches('[data-quote-item-name]')) {
+                    return;
+                }
+
+                const productName = event.target.value?.trim() ?? '';
+                const entry = productCatalog[productName];
+
+                if (!entry) {
+                    return;
+                }
+
+                const row = event.target.closest('[data-quote-item]');
+                const rateInput = row?.querySelector('[data-rate-input]');
+                const gstInput = row?.querySelector('[data-gst-input]');
+
+                if (rateInput) {
+                    rateInput.value = entry.rate;
+                    rateInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                if (gstInput) {
+                    gstInput.value = entry.gst_percent;
+                    gstInput.dispatchEvent(new Event('input', { bubbles: true }));
                 }
             });
             recalcTotals();

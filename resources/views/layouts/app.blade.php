@@ -49,6 +49,7 @@
                             ['label' => 'Orders', 'route' => 'orders.index', 'pattern' => 'orders.*'],
                             ['label' => 'Invoices', 'route' => 'invoices.index', 'pattern' => 'invoices.*'],
                             ['label' => 'Clients', 'route' => 'clients.index', 'pattern' => 'clients.*'],
+                            ['label' => 'Items', 'route' => 'products.index', 'pattern' => 'products.*'],
                             ['label' => 'AI Assistant', 'route' => 'ai-assistant.index', 'pattern' => 'ai-assistant.*'],
                             ['label' => 'Reports', 'route' => 'reports.index', 'pattern' => 'reports.*'],
                             ['label' => 'Settings', 'route' => 'settings.index', 'pattern' => 'settings.*'],

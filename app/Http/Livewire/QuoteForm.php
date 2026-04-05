@@ -3,6 +3,7 @@
 namespace App\Http\Livewire;
 
 use App\Models\Client;
+use App\Models\Product;
 use App\Models\Quote;
 use App\Services\InvoiceService;
 use App\Services\QuoteService;
@@ -33,6 +34,7 @@ class QuoteForm extends Component
     public Collection $clients;
     public ?Client $selectedClient = null;
     public ?string $quoteNumberPreview = null;
+    public Collection $products;
 
     protected ?QuoteService $quoteService = null;
     protected ?InvoiceService $invoiceService = null;
@@ -44,6 +46,7 @@ class QuoteForm extends Component
         $this->quote = $quote;
 
         $this->clients = Client::where('user_id', auth()->id())->orderBy('name')->get();
+        $this->products = Product::where('user_id', auth()->id())->orderBy('name')->get();
 
         $this->issue_date = $quote?->issue_date?->format('Y-m-d') ?? now()->format('Y-m-d');
         $this->validity_date = $quote?->validity_date?->format('Y-m-d') ?? now()->addWeek()->format('Y-m-d');
@@ -92,8 +95,14 @@ class QuoteForm extends Component
         }
     }
 
-    public function updatedItems(): void
+    public function updatedItems($value, $name): void
     {
+        if (str_starts_with($name, 'items.') && str_ends_with($name, '.name')) {
+            if (preg_match('/items\.([0-9]+)\.name$/', $name, $matches)) {
+                $this->tryAutoFillProduct((int) $matches[1], $value);
+            }
+        }
+
         $this->autoRound = true;
     }
 
@@ -152,7 +161,8 @@ class QuoteForm extends Component
             'totals' => $this->totals,
             'selectedClient' => $this->selectedClient,
             'quoteNumberPreview' => $this->quoteNumberPreview,
-            'currencySymbol' => config('invoice.currency_symbol', '₹'),
+            'currencySymbol' => config('invoice.currency_symbol', 'â‚¹'),
+            'products' => $this->products,
         ]);
     }
 
@@ -243,6 +253,24 @@ class QuoteForm extends Component
             'rate' => 0,
             'gst_percent' => 18,
         ];
+    }
+
+    protected function tryAutoFillProduct(int $index, $name): void
+    {
+        $name = trim((string) $name);
+
+        if ($name === '' || ! isset($this->items[$index])) {
+            return;
+        }
+
+        $product = $this->products->firstWhere('name', $name);
+
+        if (! $product) {
+            return;
+        }
+
+        $this->items[$index]['rate'] = (float) $product->rate;
+        $this->items[$index]['gst_percent'] = (float) $product->gst_percent;
     }
 
     public function updatedClientId($value): void

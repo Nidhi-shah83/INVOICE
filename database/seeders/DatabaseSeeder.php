@@ -37,11 +37,12 @@ class DatabaseSeeder extends Seeder
         DB::table('clients')->insert($clients);
 
         $products = [
-            ['user_id' => $user->id, 'name' => 'Service A', 'description' => 'GST free service', 'rate' => 1200.00, 'gst_percent' => 0.00, 'unit' => 'hour', 'created_at' => $now, 'updated_at' => $now],
-            ['user_id' => $user->id, 'name' => 'Product B', 'description' => 'Basic product', 'rate' => 500.00, 'gst_percent' => 5.00, 'unit' => 'piece', 'created_at' => $now, 'updated_at' => $now],
-            ['user_id' => $user->id, 'name' => 'Product C', 'description' => 'Standard item', 'rate' => 1500.00, 'gst_percent' => 12.00, 'unit' => 'set', 'created_at' => $now, 'updated_at' => $now],
-            ['user_id' => $user->id, 'name' => 'Product D', 'description' => 'Premium item', 'rate' => 2500.00, 'gst_percent' => 18.00, 'unit' => 'pack', 'created_at' => $now, 'updated_at' => $now],
-            ['user_id' => $user->id, 'name' => 'Product E', 'description' => 'Luxury item', 'rate' => 4500.00, 'gst_percent' => 28.00, 'unit' => 'box', 'created_at' => $now, 'updated_at' => $now],
+            ['user_id' => $user->id, 'name' => 'Dual-Band Router', 'description' => 'Business-grade router with VPN support', 'rate' => 6500.00, 'gst_percent' => 18.00, 'unit' => 'unit', 'created_at' => $now, 'updated_at' => $now],
+            ['user_id' => $user->id, 'name' => '4MP Indoor CCTV Camera', 'description' => 'Infrared dome camera with night vision', 'rate' => 7200.00, 'gst_percent' => 18.00, 'unit' => 'unit', 'created_at' => $now, 'updated_at' => $now],
+            ['user_id' => $user->id, 'name' => 'Business Laptop', 'description' => '14-inch laptop with 16GB RAM and SSD', 'rate' => 55000.00, 'gst_percent' => 18.00, 'unit' => 'piece', 'created_at' => $now, 'updated_at' => $now],
+            ['user_id' => $user->id, 'name' => 'PoE Network Switch', 'description' => '8-port Gigabit switch with PoE support', 'rate' => 4800.00, 'gst_percent' => 18.00, 'unit' => 'unit', 'created_at' => $now, 'updated_at' => $now],
+            ['user_id' => $user->id, 'name' => 'Smart Speaker', 'description' => 'Voice-enabled assistant speaker', 'rate' => 3900.00, 'gst_percent' => 18.00, 'unit' => 'piece', 'created_at' => $now, 'updated_at' => $now],
+            ['user_id' => $user->id, 'name' => 'Portable UPS', 'description' => '1kVA UPS for retail counters', 'rate' => 18500.00, 'gst_percent' => 18.00, 'unit' => 'unit', 'created_at' => $now, 'updated_at' => $now],
         ];
 
         DB::table('products')->insert($products);
