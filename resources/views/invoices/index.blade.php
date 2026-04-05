@@ -115,7 +115,7 @@
         </div>
 
         <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto sm:overflow-visible">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-900 text-white">
                         <tr>
@@ -173,46 +173,79 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-2 justify-center">
-                                        <a
-                                            href="{{ route('invoices.download', $invoice) }}"
-                                            class="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700 js-download-invoice"
-                                            title="Download invoice {{ $invoice->invoice_number }} as PDF"
-                                            data-invoice-number="{{ $invoice->invoice_number }}"
-                                        >
-                                            PDF
-                                        </a>
-                                        <a
-                                            href="{{ route('invoices.show', ['invoice' => $invoice, 'view' => '1']) }}"
-                                            class="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-                                            title="View invoice {{ $invoice->invoice_number }}"
-                                        >
-                                            View
-                                        </a>
-                                        <form
-                                            action="{{ route('invoices.send', $invoice) }}"
-                                            method="POST"
-                                            class="js-send-invoice"
-                                            data-invoice-number="{{ $invoice->invoice_number }}"
-                                            data-client-name="{{ $invoice->client->name ?? 'client' }}"
-                                        >
-                                            @csrf
-                                            <button
-                                                type="submit"
-                                                class="inline-flex items-center rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 hover:text-emerald-900"
-                                                title="Email invoice {{ $invoice->invoice_number }} to client"
+                                        <div class="relative group inline-flex">
+                                            <a
+                                                href="{{ route('invoices.download', $invoice) }}"
+                                                class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 js-download-invoice"
+                                                title="Download invoice {{ $invoice->invoice_number }} as PDF"
+                                                data-invoice-number="{{ $invoice->invoice_number }}"
+                                                aria-label="Download invoice {{ $invoice->invoice_number }}"
                                             >
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20h10M9 4h6v4l4 4v6H7z" />
+                                                </svg>
+                                            </a>
+                                            <span class="pointer-events-none absolute -bottom-8 left-1/2 w-max -translate-x-1/2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                                PDF
+                                            </span>
+                                        </div>
+                                        <div class="relative group inline-flex">
+                                            <a
+                                                href="{{ route('invoices.show', ['invoice' => $invoice, 'view' => '1']) }}"
+                                                class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                                                title="View invoice {{ $invoice->invoice_number }}"
+                                                aria-label="View invoice {{ $invoice->invoice_number }}"
+                                            >
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </a>
+                                            <span class="pointer-events-none absolute -bottom-8 left-1/2 w-max -translate-x-1/2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                                View
+                                            </span>
+                                        </div>
+                                        <div class="relative group inline-flex">
+                                            <form
+                                                action="{{ route('invoices.send', $invoice) }}"
+                                                method="POST"
+                                                class="js-send-invoice"
+                                                data-invoice-number="{{ $invoice->invoice_number }}"
+                                                data-client-name="{{ $invoice->client->name ?? 'client' }}"
+                                            >
+                                                @csrf
+                                                <button
+                                                    type="submit"
+                                                    class="inline-flex items-center justify-center rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-900"
+                                                    title="Email invoice {{ $invoice->invoice_number }} to client"
+                                                    aria-label="Send invoice {{ $invoice->invoice_number }}"
+                                                >
+                                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10l9 6 9-6M4 6h16v12H4z" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                            <span class="pointer-events-none absolute -bottom-8 left-1/2 w-max -translate-x-1/2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                                                 Send
+                                            </span>
+                                        </div>
+                                        <div class="relative group inline-flex">
+                                            <button
+                                                type="button"
+                                                class="inline-flex items-center justify-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 hover:text-blue-900 js-view-calls"
+                                                data-invoice-number="{{ $invoice->invoice_number }}"
+                                                data-call-logs-url="{{ route('invoices.callLogs', ['invoice_number' => $invoice->invoice_number]) }}"
+                                                title="View call history for {{ $invoice->invoice_number }}"
+                                                aria-label="View calls for {{ $invoice->invoice_number }}"
+                                            >
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 8a3 3 0 00-3-3M9 5a3 3 0 00-3 3m12 6a3 3 0 01-3 3M9 19a3 3 0 01-3-3m5-3a5 5 0 015-5" />
+                                                </svg>
                                             </button>
-                                        </form>
-                                        <button
-                                            type="button"
-                                            class="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 hover:text-blue-900 js-view-calls"
-                                            data-invoice-number="{{ $invoice->invoice_number }}"
-                                            data-call-logs-url="{{ route('invoices.callLogs', ['invoice_number' => $invoice->invoice_number]) }}"
-                                            title="View call history for {{ $invoice->invoice_number }}"
-                                        >
-                                            View Calls
-                                        </button>
+                                            <span class="pointer-events-none absolute -bottom-8 left-1/2 w-max -translate-x-1/2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                                Calls
+                                            </span>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>

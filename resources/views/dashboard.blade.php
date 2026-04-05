@@ -15,7 +15,7 @@
 @endsection
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6 bg-slate-50 px-4 py-6">
 
     {{-- STAT CARDS: 4 Key Metrics --}}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -108,6 +108,22 @@
         </div>
     </div>
 
+    <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-900/5  ">
+        <div class="flex flex-col items-center gap-2 text-center md:flex-row md:items-end md:justify-between">
+            <div>
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-400 dark:text-slate-400">Monthly Revenue</p>
+                <h3 class="text-2xl font-semibold text-slate-900 dark:text-white">Revenue Trend</h3>
+            </div>
+            <span class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:border-slate-700 dark:text-slate-300">
+                Year to date
+            </span>
+        </div>
+        <div class="mt-6 h-64 w-full">
+            <canvas id="monthlyRevenueChart" class="h-full w-full"></canvas>
+        </div>
+        <p class="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">12-month sample data keeps the curve responsive and balanced.</p>
+    </div>
+
     {{-- OVERDUE ALERT BANNER --}}
     @if(count($overdue_invoices) > 0)
     <div class="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 shadow-sm">
@@ -169,7 +185,7 @@
                 </a>
             </div>
 
-            <div class="mt-6 overflow-x-auto">
+            <div class="mt-6 overflow-x-auto sm:overflow-visible">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-slate-200">
@@ -213,18 +229,19 @@
             </div>
         </div>
 
-        {{-- TOP CLIENTS TABLE --}}
-        <div class="col-span-1 rounded-lg bg-white p-6 shadow-sm">
-            <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-slate-900">Top Clients</h2>
-            </div>
+        {{-- TOP CLIENTS --}}
+        <div class="col-span-1 rounded-lg bg-white p-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-base font-semibold text-slate-900 tracking-wide">Top Clients</h2>
+                    <span class="text-xs text-slate-500">Top 3</span>
+                </div>
 
-            <div class="mt-6 space-y-4">
+            <div class="mt-4 space-y-3">
                 @forelse($top_clients as $client)
-                <div class="rounded-lg border border-slate-200 p-4 hover:border-slate-300 transition-colors">
+                <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3 hover:border-slate-300 transition-colors">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex-1">
-                            <h3 class="font-semibold text-slate-900">{{ $client['client_name'] }}</h3>
+                            <h3 class="text-sm font-semibold text-slate-900 leading-tight">{{ $client['client_name'] }}</h3>
                             <p class="mt-1 text-xs text-slate-500">{{ $client['state'] ?? 'N/A' }}</p>
                             <div class="mt-2 flex items-center gap-2">
                                 <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
@@ -258,7 +275,7 @@
             <span class="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">{{ count($followup_activity) }} Calls</span>
         </div>
 
-        <div class="mt-6 overflow-x-auto">
+        <div class="mt-6 overflow-x-auto sm:overflow-visible">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="border-b border-slate-200">
@@ -400,5 +417,42 @@ document.getElementById('callModal')?.addEventListener('click', function(e) {
     if (e.target === this) closeCallModal();
 });
 </script>
-@endsection
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const ctx = document.getElementById('monthlyRevenueChart');
+    if (!ctx) return;
 
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [{
+                label: 'Monthly Revenue',
+                data: [21000, 24500, 23000, 27500, 31000, 33000, 36000, 38000, 42000, 45000, 47000, 52000],
+                fill: false,
+                tension: 0.4,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                },
+                y: {
+                    ticks: {
+                        callback: (value) => '₹' + value.toLocaleString('en-IN'),
+                    },
+                    grid: { color: '#e2e8f0' },
+                },
+            },
+        },
+    });
+});
+</script>
+@endsection

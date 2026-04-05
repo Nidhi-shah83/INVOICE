@@ -137,25 +137,41 @@
                                     <div class="flex flex-wrap items-center justify-end gap-2">
                                         <a
                                             href="{{ route('quotes.show', $quote) }}"
-                                            class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                            class="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                            aria-label="View quote {{ $quote->quote_number }}"
                                         >
-                                            View
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
                                         </a>
                                         <a
                                             href="{{ route('quotes.edit', $quote) }}"
-                                            class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                            class="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                            aria-label="Edit quote {{ $quote->quote_number }}"
                                         >
-                                            Edit
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4h6m-3 0v6M4 17v3h3l9-9-3-3-9 9z" />
+                                            </svg>
                                         </a>
                                         @if ($quote->status !== 'converted')
                                             <form method="POST" action="{{ route('quotes.convert', $quote) }}" class="inline js-quote-convert" data-quote-number="{{ $quote->quote_number }}">
                                                 @csrf
-                                            <button
-                                                type="submit"
-                                                class="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 hover:border-emerald-200 hover:bg-emerald-100"
-                                            >
-                                                Convert to Order
-                                            </button>
+                                                <div class="relative group inline-flex">
+                                                    <button
+                                                        type="submit"
+                                                        class="inline-flex items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-700 hover:border-emerald-200 hover:bg-emerald-100"
+                                                        aria-label="Convert quote {{ $quote->quote_number }} to order"
+                                                    >
+                                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h4l3 3-3 3H4m6 0h7a2 2 0 002-2v-2a2 2 0 00-2-2h-7" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17l7 0m-3-3l3 3-3 3" />
+                                                        </svg>
+                                                    </button>
+                                                    <span class="pointer-events-none absolute -bottom-8 left-1/2 w-max -translate-x-1/2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                                        Convert to Order
+                                                    </span>
+                                                </div>
                                             </form>
                                         @endif
                                         <form method="POST" action="{{ route('quotes.destroy', $quote) }}" class="inline js-quote-delete" data-quote-number="{{ $quote->quote_number }}">
@@ -163,9 +179,12 @@
                                             @method('DELETE')
                                             <button
                                                 type="submit"
-                                                class="inline-flex items-center gap-1 rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-600 hover:border-rose-200 hover:bg-rose-100"
+                                                class="inline-flex items-center justify-center rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-rose-600 hover:border-rose-200 hover:bg-rose-100"
+                                                aria-label="Delete quote {{ $quote->quote_number }}"
                                             >
-                                                Delete
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 7h12M10 11v6m4-6v6M9 7V5h6v2" />
+                                                </svg>
                                             </button>
                                         </form>
                                     </div>

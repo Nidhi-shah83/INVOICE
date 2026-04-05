@@ -91,36 +91,56 @@
                                         {{ $order->status }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-right space-x-2">
-                                    <a
-                                        href="{{ route('orders.show', $order) }}"
-                                        class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-400 hover:text-slate-900"
-                                    >
-                                        View
-                                    </a>
-                                    @if($order->remaining_amount > 0)
-                                        <form
-                                            method="POST"
-                                            action="{{ route('orders.createInvoice', $order) }}"
-                                            class="inline-block convert-invoice-form"
-                                            data-order-id="{{ $order->id }}"
-                                            data-quote-number="{{ e($order->quote?->quote_number ?? 'N/A') }}"
-                                            data-client-name="{{ e($order->client->name) }}"
-                                            data-remaining-amount="{{ number_format($order->remaining_amount, 2, '.', '') }}"
-                                        >
-                                            @csrf
-                                            @foreach($order->items as $item)
-                                                <input type="hidden" name="items[{{ $loop->index }}][order_item_id]" value="{{ $item->id }}">
-                                                <input type="hidden" name="items[{{ $loop->index }}][qty]" value="{{ $item->qty_remaining }}">
-                                            @endforeach
-                                            <button
-                                                type="submit"
-                                                class="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 hover:border-emerald-200 hover:bg-emerald-100"
+                                <td class="px-4 py-3 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <div class="relative group inline-flex">
+                                            <a
+                                                href="{{ route('orders.show', $order) }}"
+                                                class="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                                aria-label="View order {{ $order->order_number }}"
                                             >
-                                                Convert to Invoice
-                                            </button>
-                                        </form>
-                                    @endif
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </a>
+                                            <span class="pointer-events-none absolute -bottom-8 left-1/2 w-max -translate-x-1/2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                                View
+                                            </span>
+                                        </div>
+                                        @if($order->remaining_amount > 0)
+                                            <div class="relative group inline-flex">
+                                                <form
+                                                    method="POST"
+                                                    action="{{ route('orders.createInvoice', $order) }}"
+                                                    class="convert-invoice-form"
+                                                    data-order-id="{{ $order->id }}"
+                                                    data-quote-number="{{ e($order->quote?->quote_number ?? 'N/A') }}"
+                                                    data-client-name="{{ e($order->client->name) }}"
+                                                    data-remaining-amount="{{ number_format($order->remaining_amount, 2, '.', '') }}"
+                                                >
+                                                    @csrf
+                                                    @foreach($order->items as $item)
+                                                        <input type="hidden" name="items[{{ $loop->index }}][order_item_id]" value="{{ $item->id }}">
+                                                        <input type="hidden" name="items[{{ $loop->index }}][qty]" value="{{ $item->qty_remaining }}">
+                                                    @endforeach
+                                                    <button
+                                                        type="submit"
+                                                        class="inline-flex items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-700 hover:border-emerald-200 hover:bg-emerald-100"
+                                                        aria-label="Convert order {{ $order->order_number }} to invoice"
+                                                    >
+                                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h4l3 3-3 3H4m6 0h7a2 2 0 002-2v-2a2 2 0 00-2-2h-7" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17l7 0m-3-3l3 3-3 3" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                                <span class="pointer-events-none absolute -bottom-8 left-1/2 w-max -translate-x-1/2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                                    Convert
+                                                </span>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty

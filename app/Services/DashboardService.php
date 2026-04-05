@@ -127,7 +127,7 @@ class DashboardService
             ->selectRaw('client_id, SUM(total) as total_billed, COUNT(*) as invoice_count')
             ->with('client:id,name,state')
             ->orderByDesc('total_billed')
-            ->limit(5)
+            ->limit(3)
             ->get()
             ->map(function ($invoice) {
                 return [

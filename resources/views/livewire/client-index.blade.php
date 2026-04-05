@@ -46,28 +46,53 @@
                             <td class="px-4 py-3 text-sm font-semibold text-slate-700">{{ ucfirst($client->client_type) }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-2">
-                                    <a
-                                        href="{{ route('clients.show', $client) }}"
-                                        class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-400 hover:text-slate-900"
-                                    >
-                                        View
-                                    </a>
-                                    <a
-                                        href="{{ route('clients.edit', $client) }}"
-                                        class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-slate-400 hover:text-slate-900"
-                                    >
-                                        Edit
-                                    </a>
-                                    <form method="POST" action="{{ route('clients.destroy', $client) }}" onsubmit="return confirm('Discard this client?');" class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button
-                                            type="submit"
-                                            class="inline-flex items-center gap-1 rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-600 hover:border-rose-200 hover:bg-rose-100"
+                                    <div class="relative group inline-flex">
+                                        <a
+                                            href="{{ route('clients.show', $client) }}"
+                                            class="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                            aria-label="View client {{ $client->name }}"
                                         >
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A5.002 5.002 0 0111 15h2a5 5 0 104 7.778" />
+                                                <circle cx="12" cy="7" r="4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+                                            </svg>
+                                        </a>
+                                        <span class="pointer-events-none absolute -bottom-8 left-1/2 w-max -translate-x-1/2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                            View
+                                        </span>
+                                    </div>
+                                    <div class="relative group inline-flex">
+                                        <a
+                                            href="{{ route('clients.edit', $client) }}"
+                                            class="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                            aria-label="Edit client {{ $client->name }}"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4h6m-3 0v6M4 17v3h3l9-9-3-3-9 9z" />
+                                            </svg>
+                                        </a>
+                                        <span class="pointer-events-none absolute -bottom-8 left-1/2 w-max -translate-x-1/2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                            Edit
+                                        </span>
+                                    </div>
+                                    <div class="relative group inline-flex">
+                                        <form method="POST" action="{{ route('clients.destroy', $client) }}" onsubmit="return confirm('Discard this client?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button
+                                                type="submit"
+                                                class="inline-flex items-center justify-center rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-rose-600 hover:border-rose-200 hover:bg-rose-100"
+                                                aria-label="Delete client {{ $client->name }}"
+                                            >
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 7h12M10 11v6m4-6v6M9 7V5h6v2" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                        <span class="pointer-events-none absolute -bottom-8 left-1/2 w-max -translate-x-1/2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                                             Delete
-                                        </button>
-                                    </form>
+                                        </span>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
