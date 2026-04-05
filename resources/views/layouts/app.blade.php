@@ -4,6 +4,13 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <script>
+            if (localStorage.theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        </script>
         @php
             $brandName = setting('business_name', config('app.name', 'Invoice App'));
             $pageTitle = trim($__env->yieldContent('page-title'));
@@ -28,7 +35,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
     </head>
-    <body class="font-inter bg-slate-50 text-slate-900">
+    <body class="font-inter bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
         @php
             $businessLogo = setting('business_logo') ?: setting('logo');
             $businessName = setting('business_name', 'Invoice Portal');
@@ -37,7 +44,7 @@
             $stateName = setting('state');
             $dueDays = setting('default_due_days', 15);
         @endphp
-        <div x-data="{ sidebarOpen: false }" class="min-h-screen flex">
+        <div x-data="layoutShell()" x-init="initTheme()" class="min-h-screen flex">
             <div
                 x-show="sidebarOpen"
                 x-transition.opacity
@@ -102,7 +109,7 @@
             </aside>
 
             <div class="flex-1 flex flex-col lg:pl-64">
-                <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center justify-between px-6 py-4">
+                <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center justify-between px-6 py-4 dark:border-slate-800 dark:bg-slate-900/90">
                     <div class="flex items-center gap-4">
                         <button
                             class="lg:hidden text-slate-600"
@@ -114,8 +121,8 @@
                             </svg>
                         </button>
                         <div>
-                            <p class="text-xs uppercase tracking-widest text-slate-400">{{ setting('invoice_prefix', config('invoice.invoice_prefix', 'INV')) }} Portal</p>
-                            <h1 class="text-2xl font-semibold text-slate-900">@yield('page-title', 'Dashboard')</h1>
+                            <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">{{ setting('invoice_prefix', config('invoice.invoice_prefix', 'INV')) }} Portal</p>
+                            <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">@yield('page-title', 'Dashboard')</h1>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -124,6 +131,31 @@
                         @endif
 
                         @auth
+                            @php
+                                $userName = auth()->user()->name;
+                                $nameParts = preg_split('/\s+/', trim($userName)) ?: [];
+                                $userInitials = collect($nameParts)
+                                    ->filter()
+                                    ->take(2)
+                                    ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
+                                    ->implode('');
+                                $userInitials = $userInitials !== '' ? $userInitials : strtoupper(substr($userName, 0, 1));
+                            @endphp
+
+                            <button
+                                type="button"
+                                @click="toggleTheme()"
+                                class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-white"
+                            >
+                                <span class="sr-only">Toggle dark mode</span>
+                                <svg x-show="theme === 'light'" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                                </svg>
+                                <svg x-show="theme === 'dark'" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-9H21m-18 0h.34M18.36 5.64l-.7.7M6.34 17.66l-.7.7m12.72 0l-.7-.7M6.34 6.34l-.7-.7M12 7a5 5 0 100 10 5 5 0 000-10z" />
+                                </svg>
+                            </button>
+
                             <div
                                 x-data="{
                                     notificationsOpen: false,
@@ -185,7 +217,7 @@
                                 <button
                                     type="button"
                                     @click="notificationsOpen = ! notificationsOpen"
-                                    class="relative inline-flex items-center justify-center h-11 w-11 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition"
+                                    class="relative inline-flex items-center justify-center h-11 w-11 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-white"
                                 >
                                     <span class="sr-only">Open notifications</span>
                                     <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -202,16 +234,16 @@
                                     x-show="notificationsOpen"
                                     x-cloak
                                     x-transition.duration.200ms
-                                    class="absolute right-0 mt-3 w-[360px] origin-top-right divide-y divide-slate-200 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl"
+                                    class="absolute right-0 mt-3 w-[360px] origin-top-right divide-y divide-slate-200 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl dark:divide-slate-700 dark:border-slate-700 dark:bg-slate-900"
                                 >
                                     <div class="px-4 py-4 flex items-center justify-between">
                                         <div>
-                                            <p class="text-sm font-semibold text-slate-900">Notifications</p>
-                                            <p class="text-xs text-slate-500">Latest alerts for collection actions</p>
+                                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Notifications</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">Latest alerts for collection actions</p>
                                         </div>
                                         <button
                                             type="button"
-                                            class="text-xs font-semibold text-slate-500 hover:text-slate-900"
+                                            class="text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                                             @click.prevent="markAllRead()"
                                         >
                                             Mark all read
@@ -228,16 +260,16 @@
                                         </template>
 
                                         <template x-for="notification in notifications" :key="notification.id">
-                                            <div class="px-4 py-4 border-t border-slate-100" :class="notification.read_at ? '' : 'bg-slate-50'">
+                                            <div class="px-4 py-4 border-t border-slate-100 dark:border-slate-800" :class="notification.read_at ? '' : 'bg-slate-50 dark:bg-slate-800/40'">
                                                 <div class="flex items-start gap-3">
-                                                    <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+                                                    <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                                                         <span x-text="notification.icon"></span>
                                                     </div>
                                                     <div class="flex-1 min-w-0">
-                                                        <p class="text-sm font-semibold text-slate-900" x-text="notification.title"></p>
-                                                        <p class="mt-1 text-sm text-slate-600" x-text="notification.message"></p>
+                                                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100" x-text="notification.title"></p>
+                                                        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300" x-text="notification.message"></p>
                                                         <div class="mt-3 flex items-center justify-between gap-3">
-                                                            <span class="text-xs text-slate-400" x-text="notification.created_at"></span>
+                                                            <span class="text-xs text-slate-400 dark:text-slate-500" x-text="notification.created_at"></span>
                                                             <a
                                                                 :href="notification.action_url"
                                                                 class="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-700"
@@ -252,14 +284,64 @@
                                 </div>
                             </div>
 
-                            <div class="px-4 py-2 rounded-full bg-slate-100 text-slate-800 text-sm font-medium">
-                                {{ Auth::user()->name }}
+                            <div x-data="{ userOpen: false }" @click.outside="userOpen = false" class="relative">
+                                <button
+                                    type="button"
+                                    @click="userOpen = !userOpen"
+                                    class="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1.5 text-left shadow-sm transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-600"
+                                >
+                                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white dark:bg-slate-700">
+                                        {{ $userInitials }}
+                                    </span>
+                                    <span class="hidden text-sm font-medium text-slate-700 sm:block dark:text-slate-100">{{ auth()->user()->name }}</span>
+                                    <svg class="h-4 w-4 text-slate-500 dark:text-slate-300" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+
+                                <div
+                                    x-show="userOpen"
+                                    x-cloak
+                                    x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="transform opacity-0 scale-95"
+                                    x-transition:enter-end="transform opacity-100 scale-100"
+                                    x-transition:leave="transition ease-in duration-75"
+                                    x-transition:leave-start="transform opacity-100 scale-100"
+                                    x-transition:leave-end="transform opacity-0 scale-95"
+                                    class="absolute right-0 z-30 mt-2 w-52 origin-top-right rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                                >
+                                    <a
+                                        href="{{ route('profile.edit') }}"
+                                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"
+                                    >
+                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M10 2a4 4 0 100 8 4 4 0 000-8zM3 15a7 7 0 1114 0v1H3v-1z" />
+                                        </svg>
+                                        Profile
+                                    </a>
+                                    <div class="my-1 border-t border-slate-200 dark:border-slate-700"></div>
+                                    <button
+                                        type="button"
+                                        @click.prevent="document.getElementById('logout-form').submit()"
+                                        class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    >
+                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M3 4.75A1.75 1.75 0 014.75 3h6.5A1.75 1.75 0 0113 4.75v1.5a.75.75 0 01-1.5 0v-1.5a.25.25 0 00-.25-.25h-6.5a.25.25 0 00-.25.25v10.5c0 .138.112.25.25.25h6.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 0111.25 17h-6.5A1.75 1.75 0 013 15.25V4.75z" clip-rule="evenodd" />
+                                            <path fill-rule="evenodd" d="M10.22 7.22a.75.75 0 011.06 0l2.25 2.25a.75.75 0 010 1.06l-2.25 2.25a.75.75 0 11-1.06-1.06l.97-.97H7a.75.75 0 010-1.5h4.19l-.97-.97a.75.75 0 010-1.06z" clip-rule="evenodd" />
+                                        </svg>
+                                        Logout
+                                    </button>
+                                </div>
                             </div>
+
+                            <form id="logout-form" method="POST" action="{{ route('logout') }}" class="hidden">
+                                @csrf
+                            </form>
                         @endauth
                     </div>
                 </header>
 
-                <main class="flex-1 bg-slate-50 px-4 py-6 lg:px-10 lg:py-10">
+                <main class="flex-1 bg-slate-50 px-4 py-6 lg:px-10 lg:py-10 dark:bg-slate-950">
                     <div class="max-w-6xl mx-auto">
                         @yield('content')
                     </div>
@@ -281,6 +363,28 @@
         @endphp
 
         <script>
+            function layoutShell() {
+                return {
+                    sidebarOpen: false,
+                    theme: 'light',
+                    initTheme() {
+                        this.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+                    },
+                    toggleTheme() {
+                        if (this.theme === 'dark') {
+                            this.theme = 'light';
+                            localStorage.setItem('theme', 'light');
+                            document.documentElement.classList.remove('dark');
+                            return;
+                        }
+
+                        this.theme = 'dark';
+                        localStorage.setItem('theme', 'dark');
+                        document.documentElement.classList.add('dark');
+                    },
+                };
+            }
+
             window.notifyToast = function ({ icon = 'success', title = '', text = '' } = {}) {
                 if (!window.Swal) {
                     return;
