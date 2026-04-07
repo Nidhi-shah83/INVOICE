@@ -35,11 +35,10 @@ class InvoiceController extends Controller
         $status = (string) $request->query('status', '');
         $search = trim((string) $request->query('search', ''));
 
-        $baseQuery = Invoice::query()
-            ->with('client');
+        $filteredQuery = Invoice::query();
 
         if ($search !== '') {
-            $baseQuery->where(function ($builder) use ($search) {
+            $filteredQuery->where(function ($builder) use ($search) {
                 $builder->where('invoice_number', 'like', "%{$search}%")
                     ->orWhereHas('client', function ($clientQuery) use ($search) {
                         $clientQuery->where('name', 'like', "%{$search}%")
@@ -49,7 +48,7 @@ class InvoiceController extends Controller
             });
         }
 
-        $query = clone $baseQuery;
+        $query = (clone $filteredQuery)->with('client');
 
         if ($status && $status !== 'all') {
             if ($status === 'overdue') {
@@ -59,13 +58,21 @@ class InvoiceController extends Controller
             }
         }
 
+        $statusCounts = (clone $filteredQuery)
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
         $counts = [
-            'all' => (clone $baseQuery)->count(),
-            'draft' => (clone $baseQuery)->where('status', 'draft')->count(),
-            'sent' => (clone $baseQuery)->where('status', 'sent')->count(),
-            'paid' => (clone $baseQuery)->where('status', 'paid')->count(),
-            'cancelled' => (clone $baseQuery)->where('status', 'cancelled')->count(),
-            'overdue' => (clone $baseQuery)->where('status', 'sent')->whereDate('due_date', '<', now()->toDateString())->count(),
+            'all' => (clone $filteredQuery)->count(),
+            'draft' => (int) ($statusCounts['draft'] ?? 0),
+            'sent' => (int) ($statusCounts['sent'] ?? 0),
+            'paid' => (int) ($statusCounts['paid'] ?? 0),
+            'cancelled' => (int) ($statusCounts['cancelled'] ?? 0),
+            'overdue' => (clone $filteredQuery)
+                ->where('status', 'sent')
+                ->whereDate('due_date', '<', now()->toDateString())
+                ->count(),
         ];
 
         $invoices = $query->orderByDesc('created_at')->paginate(10);
@@ -230,7 +237,7 @@ class InvoiceController extends Controller
         $roundOff = round($grandTotal - $subtotal, 2);
         $issueDate = $data['date'];
         $dueDate = Carbon::parse($issueDate)
-            ->addDays((int) $this->settings->get('default_due_days', config('invoice.default_due_days', 15)))
+            ->addDays((int) $this->settings->get('default_due_days', 15))
             ->toDateString();
         $notes = $data['notes'] ?? null;
         $invoiceNumber = $data['invoice_number'] ?? null;
@@ -265,7 +272,7 @@ class InvoiceController extends Controller
                 'amount_paid' => 0,
                 'amount_due' => $grandTotal,
                 'payment_status' => 'unpaid',
-                'currency' => config('invoice.currency', 'INR'),
+                'currency' => (string) setting('currency', 'INR'),
                 'notes' => $notes,
             ]);
 
@@ -416,7 +423,7 @@ class InvoiceController extends Controller
             'email' => "{$slug}-{$token}@example.com",
             'phone' => 'N/A',
             'gstin' => $gstin,
-            'state' => (string) config('invoice.state', 'Karnataka'),
+            'state' => (string) setting('state', 'Karnataka'),
             'address' => 'N/A',
         ]);
     }

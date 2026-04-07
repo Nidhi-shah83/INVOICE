@@ -31,15 +31,15 @@
 @section('content')
     <div class="space-y-6">
         @php
-            $currencySymbol = config('invoice.currency_symbol', '₹');
+            $currencySymbol = setting('currency_symbol', 'Rs');
         @endphp
         @php
             $businessDefaults = [
-                'business_name' => config('invoice.business_name', 'Invoice Pro'),
-                'address' => config('company.address', '123 Corporate Blvd, City, State ZIP'),
-                'gstin' => config('invoice.gstin', 'XXX0000XXXX'),
-                'email' => config('invoice.email', 'contact@example.com'),
-                'phone' => config('invoice.phone', ''),
+                'business_name' => setting('business_name', 'Invoice Pro'),
+                'address' => setting('address', 'Address not set'),
+                'gstin' => setting('gstin', ''),
+                'email' => setting('email', ''),
+                'phone' => setting('phone', ''),
             ];
             $businessInfo = array_filter(array_replace($businessDefaults, $businessSettings ?? []), fn ($value) => $value !== null && $value !== '');
         @endphp
@@ -110,3 +110,5 @@
         });
     </script>
 @endsection
+
+

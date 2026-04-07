@@ -1,5 +1,5 @@
 @php
-    $displayCurrency = $currencySymbol ?? config('invoice.currency_symbol', '₹');
+    $displayCurrency = $currencySymbol ?? setting('currency_symbol', 'Rs');
     $formatted = fn ($value) => $displayCurrency . number_format($value, 2);
     $taxableAmount = $quote->subtotal - $quote->discount_amount;
     $gstRows = [
@@ -11,11 +11,11 @@
 
 @php
     $businessData = array_merge([
-        'business_name' => config('invoice.business_name', 'Invoice Pro'),
-        'address' => config('company.address', '123 Corporate Blvd, City, State ZIP'),
-        'gstin' => config('invoice.gstin', 'XXX0000XXXX'),
-        'email' => config('invoice.email', 'contact@example.com'),
-        'phone' => config('invoice.phone', ''),
+        'business_name' => setting('business_name', 'Invoice Pro'),
+        'address' => setting('address', 'Address not set'),
+        'gstin' => setting('gstin', ''),
+        'email' => setting('email', ''),
+        'phone' => setting('phone', ''),
     ], $businessInfo ?? []);
 @endphp
 
@@ -152,3 +152,5 @@
         </div>
     </div>
 </div>
+
+

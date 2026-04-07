@@ -6,8 +6,8 @@
             <p class="text-2xl font-semibold text-slate-900">{{ $quoteNumberPreview ?? 'Draft' }}</p>
         </div>
         <div class="text-right text-xs text-slate-500">
-            <p>Business GSTIN: {{ config('invoice.gstin', 'XX0000XXXX') }}</p>
-            <p>{{ config('invoice.business_name') }}</p>
+            <p>Business GSTIN: {{ setting('gstin', '') }}</p>
+            <p>{{ setting('business_name', 'Invoice Pro') }}</p>
         </div>
     </div>
 
@@ -197,7 +197,7 @@
                 <!-- Summary -->
                 <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5"
                     data-quote-summary
-                    data-business-state="{{ config('invoice.state') }}"
+                    data-business-state="{{ setting('state', '') }}"
                 >
 
                     <div>
@@ -555,3 +555,4 @@
     </script>
 </form>
 </div>
+

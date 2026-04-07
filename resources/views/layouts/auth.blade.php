@@ -14,13 +14,7 @@
         @php
             $brandName = setting('business_name', 'Invoice Pro');
             $pageTitle = trim($__env->yieldContent('page-title'));
-            $faviconPath = setting('favicon');
-            $faviconPath = is_string($faviconPath) ? ltrim(preg_replace('#^/?storage/#', '', $faviconPath), '/') : null;
-            $faviconUrl = asset('favicon.ico');
-
-            if (! empty($faviconPath) && \Illuminate\Support\Facades\Storage::disk('public')->exists($faviconPath)) {
-                $faviconUrl = asset('storage/' . $faviconPath);
-            }
+            $faviconUrl = setting_media_url('favicon') ?: asset('favicon.ico');
         @endphp
 
         <title>{{ $pageTitle !== '' ? $pageTitle.' | '.$brandName : $brandName }}</title>
@@ -39,7 +33,7 @@
             <section class="relative z-10 w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition dark:border-gray-700 dark:bg-gray-800">
                 <header class="mb-6 text-center">
                     <p class="text-xs font-semibold uppercase tracking-[0.28em] text-gray-500 dark:text-gray-400">GST-ready invoicing</p>
-                    <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Invoice Pro</h1>
+                    <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $brandName }}</h1>
                     <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">@yield('auth-subtitle', 'Manage quotes, invoices, and payments in one place.')</p>
                 </header>
 
@@ -48,3 +42,4 @@
         </main>
     </body>
 </html>
+

@@ -135,7 +135,7 @@
                                 $rowClass = $isOverdue
                                     ? 'bg-rose-50 hover:bg-rose-100'
                                     : ($invoice->payment_status === 'partial' ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-slate-50');
-                                $currencySymbol = setting('currency_symbol', config('invoice.currency_symbol', 'Rs '));
+                                $currencySymbol = setting('currency_symbol', 'Rs ');
                                 $secondaryStatus = match (true) {
                                     $invoice->payment_status === 'paid' => null,
                                     $invoice->status === 'draft' => 'draft',

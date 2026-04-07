@@ -13,11 +13,9 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return redirect()->route('login');
-})->name('home');
+Route::redirect('/', '/login')->name('home');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'mail.settings'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::resource('clients', ClientController::class);

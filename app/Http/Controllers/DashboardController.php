@@ -9,7 +9,7 @@ class DashboardController extends Controller
 {
     public function __construct(protected DashboardService $service)
     {
-        $this->middleware('auth:sanctum');
+        $this->middleware('auth');
     }
 
     public function __invoke(): View

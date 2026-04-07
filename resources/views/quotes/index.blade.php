@@ -13,7 +13,7 @@
 
 @section('content')
     @php
-        $currencySymbol = config('invoice.currency_symbol', '₹');
+        $currencySymbol = setting('currency_symbol', 'Rs');
         $statusClasses = [
             'draft' => 'bg-slate-100 text-slate-600',
             'sent' => 'bg-blue-100 text-blue-700',
@@ -249,3 +249,5 @@
 </script>
 </div>
 @endsection
+
+

@@ -3,31 +3,35 @@
 namespace App\Services;
 
 use App\Models\Setting;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
+use RuntimeException;
 use Throwable;
 
 class SettingService
 {
-    private array $cache = [];
-
-    private bool $loaded = false;
+    private const CACHE_TTL_SECONDS = 3600;
 
     private const DEFAULTS = [
         'business_name' => 'Invoice Pro',
+        'logo' => null,
+        'favicon' => null,
         'gstin' => '-',
-        'state' => '-',
+        'address' => '',
+        'country' => 'India',
+        'state' => '',
+        'currency' => 'INR',
+        'currency_symbol' => 'Rs',
+        'invoice_prefix' => 'INV',
+        'default_due_days' => 15,
+        'default_gst_rate' => 18,
         'email' => '',
         'phone' => '',
         'terms_conditions' => '',
-        'due_days' => 15,
-        'default_due_days' => 15,
-        'ai_call_enabled' => false,
-    ];
-
-    private const ALIASES = [
-        'ai_call_enabled' => 'enable_ai_calls',
+        'mail_mailer' => 'smtp',
+        'mail_port' => 587,
+        'mail_from_address' => null,
+        'mail_from_name' => null,
     ];
 
     public static function defaultFor(string $key)
@@ -37,23 +41,10 @@ class SettingService
 
     public function get(string $key, $default = null)
     {
-        $this->load();
+        $settings = $this->all();
 
-        if (array_key_exists($key, $this->cache)) {
-            return $this->cache[$key];
-        }
-
-        $aliasedKey = self::ALIASES[$key] ?? null;
-        if ($aliasedKey && array_key_exists($aliasedKey, $this->cache)) {
-            return $this->cache[$aliasedKey];
-        }
-
-        if ($key === 'due_days' && array_key_exists('default_due_days', $this->cache)) {
-            return $this->cache['default_due_days'];
-        }
-
-        if ($key === 'default_due_days' && array_key_exists('due_days', $this->cache)) {
-            return $this->cache['due_days'];
+        if (array_key_exists($key, $settings)) {
+            return $settings[$key];
         }
 
         if (func_num_args() >= 2) {
@@ -65,44 +56,32 @@ class SettingService
 
     public function set(string $key, $value): void
     {
-        $writeKey = self::ALIASES[$key] ?? $key;
         $userId = $this->userId();
-
         if ($userId === null) {
-            throw new \RuntimeException('Unable to save settings for unauthenticated user.');
+            throw new RuntimeException('Unable to save settings for unauthenticated user.');
         }
 
-        if ($writeKey === 'mail_password' && $value !== null) {
-            $value = encrypt((string) $value);
+        if ($key === 'mail_password' && $value !== null && $value !== '') {
+            $value = Crypt::encryptString((string) $value);
         }
 
         Setting::updateOrCreate(
-            ['user_id' => $userId, 'key' => $writeKey],
+            ['user_id' => $userId, 'key' => $key],
             ['value' => $value],
         );
 
-        // Keep request-level cache in sync to avoid unnecessary reloads.
-        $this->cache[$writeKey] = $value;
-
-        foreach (self::ALIASES as $alias => $canonicalKey) {
-            if ($canonicalKey === $writeKey) {
-                $this->cache[$alias] = $value;
-            }
-        }
-
-        if (in_array($writeKey, ['due_days', 'default_due_days'], true)) {
-            $pairedKey = $writeKey === 'due_days' ? 'default_due_days' : 'due_days';
-            $this->cache[$pairedKey] = $value;
-        }
+        Cache::forget($this->cacheKey($userId));
     }
 
     public function getMany(array $keys): array
     {
-        $this->load();
+        $settings = $this->all();
 
-        return array_reduce($keys, function ($carry, $key) {
+        return array_reduce($keys, function (array $carry, $key) use ($settings): array {
             $key = (string) $key;
-            $carry[$key] = $this->get($key);
+            $carry[$key] = array_key_exists($key, $settings)
+                ? $settings[$key]
+                : self::defaultFor($key);
 
             return $carry;
         }, []);
@@ -110,50 +89,69 @@ class SettingService
 
     public function forgetCache(): void
     {
-        $this->cache = [];
-        $this->loaded = false;
-    }
-
-    public function all(): Collection
-    {
-        $this->load();
-
-        return collect($this->cache);
-    }
-
-    private function userId(): ?int
-    {
-        return Auth::id();
-    }
-
-    private function load(): void
-    {
-        if ($this->loaded) {
-            return;
-        }
-
-        $this->loaded = true;
-
         $userId = $this->userId();
-
         if ($userId === null) {
             return;
         }
 
-        $this->cache = Setting::query()
-            ->where('user_id', $userId)
-            ->get()
-            ->mapWithKeys(fn (Setting $setting) => [$setting->key => $setting->value])
-            ->all();
-
-        if (isset($this->cache['mail_password'])) {
-            $this->cache['mail_password'] = $this->decryptValue($this->cache['mail_password']);
-        }
+        Cache::forget($this->cacheKey($userId));
     }
 
-    private function decryptValue($value)
+    public function all(): array
+    {
+        $userId = $this->userId();
+        if ($userId === null) {
+            return [];
+        }
+
+        return Cache::remember(
+            "settings_user_".$userId,
+            self::CACHE_TTL_SECONDS,
+            fn () => $this->loadForUser($userId),
+        );
+    }
+
+    private function userId(): ?int
+    {
+        $id = auth()->id();
+
+        return is_int($id) ? $id : null;
+    }
+
+    private function cacheKey(int $userId): string
+    {
+        return "settings_user_{$userId}";
+    }
+
+    private function loadForUser(int $userId): array
+    {
+        $settings = Setting::query()
+            ->withoutGlobalScopes()
+            ->where('user_id', $userId)
+            ->get(['key', 'value'])
+            ->mapWithKeys(function (Setting $setting): array {
+                return [$setting->key => $this->decodeValue($setting->key, $setting->value)];
+            })
+            ->all();
+
+        if (array_key_exists('default_due_days', $settings) && ! array_key_exists('due_days', $settings)) {
+            $settings['due_days'] = $settings['default_due_days'];
+        }
+
+        if (array_key_exists('due_days', $settings) && ! array_key_exists('default_due_days', $settings)) {
+            $settings['default_due_days'] = $settings['due_days'];
+        }
+
+        return $settings;
+    }
+
+    private function decodeValue(string $key, $value)
     {
         if ($value === null || $value === '') {
+            return $value;
+        }
+
+        if ($key !== 'mail_password') {
             return $value;
         }
 

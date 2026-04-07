@@ -14,14 +14,7 @@
         @php
             $brandName = setting('business_name', config('app.name', 'Invoice App'));
             $pageTitle = trim($__env->yieldContent('page-title'));
-            $faviconPath = setting('favicon');
-            $faviconPath = is_string($faviconPath) ? ltrim(preg_replace('#^/?storage/#', '', $faviconPath), '/') : null;
-            $faviconUrl = asset('favicon.ico');
-
-            if (! empty($faviconPath) && \Illuminate\Support\Facades\Storage::disk('public')->exists($faviconPath)) {
-                $faviconMime = \Illuminate\Support\Facades\Storage::disk('public')->mimeType($faviconPath) ?: 'image/png';
-                $faviconUrl = 'data:'.$faviconMime.';base64,'.base64_encode(\Illuminate\Support\Facades\Storage::disk('public')->get($faviconPath));
-            }
+            $faviconUrl = setting_media_url('favicon') ?: asset('favicon.ico');
         @endphp
 
         <title>{{ $pageTitle !== '' ? $pageTitle.' | '.$brandName : $brandName }}</title>
@@ -37,7 +30,7 @@
     </head>
     <body class="font-inter bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
         @php
-            $businessLogo = setting('business_logo') ?: setting('logo');
+            $businessLogoUrl = setting_media_url('logo', 'business_logo');
             $businessName = setting('business_name', 'Invoice Portal');
             $businessInitial = strtoupper(substr($businessName, 0, 2));
             $businessGstin = setting('gstin', '');
@@ -58,11 +51,19 @@
                 :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full' + ' lg:translate-x-0'"
             >
                 <div class="flex items-center justify-between px-6 py-5 border-b border-white/10">
-                    <div class="flex items-center gap-3">
-            
-                        <div>
-                            <p class="text-sm uppercase tracking-[0.2em] text-slate-200">{{ $businessName }}</p>
-                            <p class="text-xs text-white/80">GSTIN: {{ $businessGstin }}</p>
+                    <div class="flex items-center gap-4">
+                        <div class="h-12 w-12 rounded-xl bg-white/95 shadow-sm flex items-center justify-center overflow-hidden p-2 transition-transform duration-200 hover:scale-105">
+                            @if ($businessLogoUrl)
+                                <img src="{{ $businessLogoUrl }}" alt="{{ $businessName }} logo" class="max-h-full max-w-full object-contain">
+                            @else
+                                <span class="flex h-full w-full items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/90 via-indigo-500/90 to-purple-600/90 text-lg font-bold tracking-wider text-white leading-none">
+                                    {{ $businessInitial }}
+                                </span>
+                            @endif
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold tracking-wide text-white drop-shadow-sm">{{ $businessName }}</p>
+                            <p class="text-xs text-white/60">{{ $businessGstin ? 'GSTIN: '.$businessGstin : 'GSTIN not set' }}</p>
                         </div>
                     </div>
                     <button class="lg:hidden" @click="sidebarOpen = false">
@@ -73,7 +74,7 @@
                     </button>
                 </div>
 
-                <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-1 text-sm" aria-label="Main">
+                <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-1 text-sm sidebar-scrollbar" aria-label="Main">
                     @php
                         $navItems = [
                             ['label' => 'Dashboard', 'route' => 'dashboard', 'pattern' => 'dashboard'],
@@ -93,7 +94,7 @@
                             href="{{ route($item['route']) }}"
                             class="flex items-center gap-3 px-4 py-3 rounded-xl transition hover:bg-white/10 {{ request()->routeIs($item['pattern']) ? 'bg-white/10' : '' }}"
                         >
-                            <span class="text-base">•</span>
+                            <span class="text-base">&bull;</span>
                             <span class="text-sm font-medium">{{ $item['label'] }}</span>
                         </a>
                     @endforeach
@@ -121,7 +122,7 @@
                             </svg>
                         </button>
                         <div>
-                            <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">{{ setting('invoice_prefix', config('invoice.invoice_prefix', 'INV')) }} Portal</p>
+                            <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">{{ setting('invoice_prefix', 'INV') }} Portal</p>
                             <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">@yield('page-title', 'Dashboard')</h1>
                         </div>
                     </div>
