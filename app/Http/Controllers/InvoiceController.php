@@ -10,6 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -231,37 +232,55 @@ class InvoiceController extends Controller
         $dueDate = Carbon::parse($issueDate)
             ->addDays((int) $this->settings->get('default_due_days', config('invoice.default_due_days', 15)))
             ->toDateString();
+        $notes = $data['notes'] ?? null;
+        $invoiceNumber = $data['invoice_number'] ?? null;
 
-        $invoice = Invoice::create([
-            'user_id' => $user->id,
-            'client_id' => $client->id,
-            'invoice_number' => $data['invoice_number'] ?: $this->service->generateInvoiceNumber($user->id),
-            'issue_date' => $issueDate,
-            'due_date' => $dueDate,
-            'status' => $persistedStatus,
-            'subtotal' => $subtotal,
-            'cgst' => 0,
-            'sgst' => 0,
-            'igst' => 0,
-            'total' => $grandTotal,
-            'round_off' => $roundOff,
-            'grand_total' => $grandTotal,
-            'amount_paid' => 0,
-            'amount_due' => $grandTotal,
-            'payment_status' => 'unpaid',
-            'currency' => config('invoice.currency', 'INR'),
-            'notes' => $data['notes'] ?? null,
-        ]);
-
-        foreach ($items as $item) {
-            $invoice->items()->create([
-                'name' => $item['name'],
-                'qty_billed' => $item['quantity'],
-                'rate' => $item['rate'],
-                'gst_percent' => 0,
-                'amount' => $item['amount'],
+        $invoice = DB::transaction(function () use (
+            $user,
+            $client,
+            $items,
+            $issueDate,
+            $dueDate,
+            $persistedStatus,
+            $roundOff,
+            $subtotal,
+            $grandTotal,
+            $notes,
+            $invoiceNumber
+        ) {
+            $invoice = Invoice::create([
+                'user_id' => $user->id,
+                'client_id' => $client->id,
+                'invoice_number' => $invoiceNumber ?: $this->service->generateInvoiceNumber($user->id),
+                'issue_date' => $issueDate,
+                'due_date' => $dueDate,
+                'status' => $persistedStatus,
+                'subtotal' => $subtotal,
+                'cgst' => 0,
+                'sgst' => 0,
+                'igst' => 0,
+                'total' => $grandTotal,
+                'round_off' => $roundOff,
+                'grand_total' => $grandTotal,
+                'amount_paid' => 0,
+                'amount_due' => $grandTotal,
+                'payment_status' => 'unpaid',
+                'currency' => config('invoice.currency', 'INR'),
+                'notes' => $notes,
             ]);
-        }
+
+            foreach ($items as $item) {
+                $invoice->items()->create([
+                    'name' => $item['name'],
+                    'qty_billed' => $item['quantity'],
+                    'rate' => $item['rate'],
+                    'gst_percent' => 0,
+                    'amount' => $item['amount'],
+                ]);
+            }
+
+            return $invoice;
+        });
 
         $invoice = $this->service->syncInvoicePaymentState($invoice);
 

@@ -13,6 +13,7 @@ use App\Models\Quote;
 use App\Services\RazorpayService;
 use App\Services\SettingService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -40,14 +41,53 @@ class InvoiceService extends ModuleService
         $prefix = rtrim($prefix, '-');
         $fullPrefix = sprintf('%s-%s-', $prefix, $year);
 
-        $lastInvoice = Invoice::where('user_id', $userId)
-            ->where('invoice_number', 'like', $fullPrefix.'%')
-            ->orderByDesc('id')
-            ->first();
-
-        $sequence = $lastInvoice ? (int) Str::afterLast($lastInvoice->invoice_number, '-') + 1 : 1;
+        $sequence = $this->nextInvoiceSequence($fullPrefix);
 
         return sprintf('%s%03d', $fullPrefix, $sequence);
+    }
+
+    private function nextInvoiceSequence(string $fullPrefix): int
+    {
+        $maxAttempts = 5;
+        $attempts = 0;
+        $indexName = 'invoice_number_sequences_prefix_unique';
+
+        while (true) {
+            try {
+                return DB::transaction(function () use ($fullPrefix) {
+                    $sequenceRow = DB::table('invoice_number_sequences')
+                        ->where('prefix', $fullPrefix)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($sequenceRow) {
+                        $next = (int) $sequenceRow->sequence + 1;
+
+                        DB::table('invoice_number_sequences')
+                            ->where('id', $sequenceRow->id)
+                            ->update([
+                                'sequence' => $next,
+                                'updated_at' => now(),
+                            ]);
+
+                        return $next;
+                    }
+
+                    DB::table('invoice_number_sequences')->insert([
+                        'prefix' => $fullPrefix,
+                        'sequence' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    return 1;
+                });
+            } catch (UniqueConstraintViolationException $exception) {
+                if (! str_contains($exception->getMessage(), $indexName) || ++$attempts >= $maxAttempts) {
+                    throw $exception;
+                }
+            }
+        }
     }
 
     public function generateQuoteNumber(int $userId): string
@@ -298,7 +338,7 @@ class InvoiceService extends ModuleService
     {
         return DB::transaction(function () use ($order, $items, $notes, $dueDate, $issueDate) {
             $dueDays = (int) $this->settings->get('default_due_days', Config::get('invoice.default_due_days', 15));
-            $invoice = Invoice::create([
+            $invoiceAttributes = [
                 'user_id' => $order->user_id,
                 'client_id' => $order->client_id,
                 'order_id' => $order->id,
@@ -307,7 +347,9 @@ class InvoiceService extends ModuleService
                 'due_date' => $dueDate ?: now()->addDays($dueDays)->toDateString(),
                 'status' => 'draft',
                 'notes' => $notes,
-            ]);
+            ];
+
+            $invoice = Invoice::create($invoiceAttributes);
 
             $lineItems = [];
 

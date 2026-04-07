@@ -48,7 +48,7 @@
                         <h1 class="text-3xl font-semibold tracking-tight">{{ $invoice->invoice_number }}</h1>
                     </div>
                     <div class="space-y-1 text-sm text-slate-200 text-right">
-                        <p class="font-semibold" :class="paymentBadgeClass()" x-text="'Status: ' + paymentStatus.toUpperCase()"></p>
+                        
                         <p>Client: {{ $invoice->client->name }}</p>
                         <p>{{ $invoice->client->email }}</p>
                     </div>
@@ -138,14 +138,6 @@
                             <span class="font-medium">{{ $currencySymbol }}{{ number_format($invoice->subtotal, 2) }}</span>
                         </div>
                         <div class="flex justify-between py-2">
-                            <span>Discount</span>
-                            <span class="font-medium">{{ $invoice->discount_type === 'percent' ? number_format($invoice->discount_value, 2).'%' : $currencySymbol . number_format($invoice->discount_value, 2) }}</span>
-                        </div>
-                        <div class="flex justify-between py-2">
-                            <span>Discount Amount</span>
-                            <span class="font-medium">{{ $currencySymbol }}{{ number_format($invoice->discount_amount, 2) }}</span>
-                        </div>
-                        <div class="flex justify-between py-2">
                             <span>CGST</span>
                             <span class="font-medium">{{ $currencySymbol }}{{ number_format($invoice->cgst, 2) }}</span>
                         </div>
@@ -157,9 +149,9 @@
                             <span>IGST</span>
                             <span class="font-medium">{{ $currencySymbol }}{{ number_format($invoice->igst, 2) }}</span>
                         </div>
-                        <div class="flex justify-between py-2">
-                            <span>Round Off</span>
-                            <span class="font-medium">{{ $currencySymbol }}{{ number_format($invoice->round_off, 2) }}</span>
+                        <div class="flex justify-between py-2 border-t border-slate-200 pt-2">
+                            <span>Total</span>
+                            <span class="font-semibold text-lg">{{ $currencySymbol }}{{ number_format($invoice->grand_total, 2) }}</span>
                         </div>
                     </div>
                 </div>
