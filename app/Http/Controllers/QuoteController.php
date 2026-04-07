@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\QuoteMail;
 use App\Http\Requests\QuoteRequest;
 use App\Models\Client;
 use App\Models\Invoice;
@@ -12,6 +13,7 @@ use App\Services\QuoteService;
 use App\Services\SettingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -127,29 +129,37 @@ class QuoteController extends Controller
     public function send(Quote $quote)
     {
         $this->ensureOwnership($quote);
+        $quote->load('client', 'items');
+        $clientEmail = trim((string) ($quote->client?->email ?? ''));
+
+        if ($clientEmail === '' || ! filter_var($clientEmail, FILTER_VALIDATE_EMAIL)) {
+            return back()->withErrors(['quote_send' => 'Client email is missing or invalid. Please update the client email before sending this quote.']);
+        }
+
         apply_user_mail_config((int) $quote->user_id);
 
-        $quote->load('client', 'items');
-        $token = (string) Str::uuid();
-        $quote->accept_token = $token;
-        $quote->status = 'sent';
-        $quote->accepted_at = null;
-        $quote->save();
+        try {
+            $token = (string) Str::uuid();
+            $quote->approval_token = $token;
+            $quote->accept_token = $token;
+            $quote->status = 'sent';
+            $quote->accepted_at = null;
+            $quote->save();
 
-        $pdf = Pdf::loadView('quotes.pdf', compact('quote'));
-        $path = 'quotes/'.$quote->quote_number.'.pdf';
-        Storage::disk('public')->put($path, $pdf->output());
+            $pdf = Pdf::loadView('quotes.pdf', compact('quote'));
+            $pdfOutput = $pdf->output();
 
-        Mail::send('emails.quote', [
-            'quote' => $quote,
-            'acceptUrl' => route('quotes.accept', ['token' => $token]),
-        ], function ($message) use ($quote, $pdf) {
-            $message->to($quote->client->email)
-                ->subject("Quote {$quote->quote_number}")
-                ->attachData($pdf->output(), "{$quote->quote_number}.pdf");
-        });
+            $path = 'quotes/'.$quote->quote_number.'.pdf';
+            Storage::disk('public')->put($path, $pdfOutput);
 
-        return redirect()->route('quotes.show', $quote)->with('status', 'Quote sent (PDF generated).');
+            Mail::to($clientEmail)->send(new QuoteMail($quote, $pdfOutput));
+
+            return back()->with('success', 'Quote sent successfully');
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors(['quote_send' => 'Unable to send quote: '.$exception->getMessage()]);
+        }
     }
 
     public function download(Quote $quote)
@@ -196,27 +206,41 @@ class QuoteController extends Controller
         return redirect()->route('orders.show', $order)->with('status', 'Quote converted to order.');
     }
 
-    public function accept(string $token)
+    public function approve(int $id, string $token)
     {
-        $quote = Quote::where('accept_token', $token)->firstOrFail();
+        $quote = Quote::with(['client', 'items', 'order'])
+            ->where('id', $id)
+            ->where(function ($query) use ($token) {
+                $query->where('approval_token', $token)
+                    ->orWhere('accept_token', $token);
+            })
+            ->firstOrFail();
 
-        if (in_array($quote->status, ['accepted', 'converted'])) {
-            return view('quotes.accept', [
+        // Prevent duplicate order conversion on repeated link clicks.
+        if (in_array($quote->status, ['accepted', 'converted'], true) && $quote->order) {
+            return view('quotes.already-approved', [
                 'quote' => $quote,
-                'already' => true,
+                'order' => $quote->order,
             ]);
         }
 
-        $quote->update([
-            'status' => 'accepted',
-            'accepted_at' => now(),
-            'accept_token' => null,
-        ]);
+        $quote->status = 'accepted';
+        $quote->accepted_at = now();
+        $quote->save();
 
-        return view('quotes.accept', [
-            'quote' => $quote,
-            'already' => false,
-        ]);
+        $order = $this->convertQuoteToOrderFromApproval($quote);
+
+        return view('quotes.approved-success', compact('quote', 'order'));
+    }
+
+    public function accept(string $token)
+    {
+        $quote = Quote::query()
+            ->where('accept_token', $token)
+            ->orWhere('approval_token', $token)
+            ->firstOrFail();
+
+        return $this->approve((int) $quote->id, $token);
     }
 
     protected function payload(QuoteRequest $request): array
@@ -254,5 +278,58 @@ class QuoteController extends Controller
         }
 
         return $counts;
+    }
+
+    protected function convertQuoteToOrderFromApproval(Quote $quote): Order
+    {
+        if ($quote->order_id) {
+            return $quote->order()->firstOrFail();
+        }
+
+        return DB::transaction(function () use ($quote): Order {
+            $order = Order::create([
+                'user_id' => $quote->user_id,
+                'client_id' => $quote->client_id,
+                'quote_id' => $quote->id,
+                'order_number' => $this->nextOrderNumberFromQuote($quote->quote_number),
+                'status' => 'pending',
+                'acceptance_token' => (string) Str::uuid(),
+                'total_amount' => (float) ($quote->grand_total ?: $quote->total),
+                'billed_amount' => 0,
+            ]);
+
+            foreach ($quote->items as $item) {
+                $order->items()->create([
+                    'name' => $item->name,
+                    'qty' => $item->qty,
+                    'rate' => $item->rate,
+                    'gst_percent' => $item->gst_percent,
+                ]);
+            }
+
+            $quote->order_id = $order->id;
+            $quote->status = 'converted';
+            $quote->accepted_at = $quote->accepted_at ?: now();
+            $quote->save();
+
+            return $order;
+        });
+    }
+
+    protected function nextOrderNumberFromQuote(string $quoteNumber): string
+    {
+        $base = Str::startsWith($quoteNumber, 'QT')
+            ? Str::replaceFirst('QT', 'OR', $quoteNumber)
+            : 'OR-'.$quoteNumber;
+
+        $candidate = $base;
+        $suffix = 1;
+
+        while (Order::where('order_number', $candidate)->exists()) {
+            $candidate = $base.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $candidate;
     }
 }

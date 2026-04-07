@@ -23,6 +23,7 @@ class Quote extends Model
         'total',
         'notes',
         'order_id',
+        'approval_token',
         'accept_token',
         'accepted_at',
         'discount_type',

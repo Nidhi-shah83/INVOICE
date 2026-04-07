@@ -21,7 +21,7 @@ class OrderConfirmedMail extends Mailable
 
     public function build()
     {
-        return $this->subject("Order Confirmed — {$this->order->order_number}")
-            ->view('emails.order_confirmed');
+        return $this->subject("Order Confirmed - {$this->order->order_number}")
+            ->view('emails.order');
     }
 }

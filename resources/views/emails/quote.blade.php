@@ -52,6 +52,15 @@
                 </table>
 
                 <p style="margin-top: 16px;"><strong>Grand Total:</strong> {{ $currencySymbol }}{{ number_format($quote->grand_total, 2) }}</p>
+                @if (!empty($quote->approval_token))
+                    @php($approvalUrl = $approveUrl ?? url('/quote/approve/'.$quote->id.'/'.$quote->approval_token))
+                    <p style="margin-top: 22px;">
+                        <a href="{{ $approvalUrl }}"
+                           style="padding:10px 20px;background:#16a34a;color:white;text-decoration:none;border-radius:6px;display:inline-block;">
+                           Approve Quote
+                        </a>
+                    </p>
+                @endif
                 <p style="margin-top: 16px;">If you have questions, reply to this email.</p>
             </div>
         </div>
