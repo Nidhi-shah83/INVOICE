@@ -308,7 +308,8 @@ class InvoiceService extends ModuleService
                 'client_id' => $quote->client_id,
                 'quote_id' => $quote->id,
                 'order_number' => str_replace('QT', 'OR', $quote->quote_number),
-                'status' => 'confirmed',
+                'status' => 'pending',
+                'acceptance_token' => (string) Str::uuid(),
                 'total_amount' => $quote->grand_total,
                 'billed_amount' => 0,
             ]);

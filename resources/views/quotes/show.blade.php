@@ -4,10 +4,10 @@
 
 @section('primary-action')
     <div class="flex flex-wrap gap-3">
-        <form method="POST" action="{{ route('quotes.send', $quote) }}" class="js-send-quote" data-quote-number="{{ $quote->quote_number }}" data-client-name="{{ $quote->client->name ?? 'client' }}">
+        <form method="POST" action="{{ route('quotes.send', $quote->id) }}" class="js-send-quote" data-quote-number="{{ $quote->quote_number }}" data-client-name="{{ $quote->client->name ?? 'client' }}">
             @csrf
             <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800 transition">
-                Send PDF
+                Send Quote
             </button>
         </form>
         @if($quote->status === 'accepted')

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Services\InvoiceService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -14,6 +16,8 @@ use Illuminate\Validation\Rule;
 class OrderController extends Controller
 {
     protected array $allowedStatuses = [
+        'pending',
+        'accepted',
         'confirmed',
         'in_progress',
         'partially_billed',
@@ -24,7 +28,7 @@ class OrderController extends Controller
 
     public function __construct(protected InvoiceService $invoiceService)
     {
-        $this->middleware('auth');
+        $this->middleware('auth')->except(['accept', 'reject']);
     }
 
     public function index(Request $request)
@@ -95,6 +99,11 @@ class OrderController extends Controller
         $this->ensureOwnership($order);
         apply_user_mail_config((int) $order->user_id);
 
+        if (! $order->acceptance_token) {
+            $order->acceptance_token = (string) Str::uuid();
+            $order->save();
+        }
+
         $order->load('client', 'items', 'quote');
         $pdf = Pdf::loadView('orders.pdf', compact('order'))
             ->setPaper('a4', 'portrait')
@@ -106,13 +115,182 @@ class OrderController extends Controller
         $path = 'orders/'.$order->order_number.'.pdf';
         Storage::disk('public')->put($path, $pdf->output());
 
-        Mail::send('emails.order_sent', ['order' => $order], function ($message) use ($order, $pdf) {
+        Mail::send('emails.order', ['order' => $order], function ($message) use ($order, $pdf) {
             $message->to($order->client->email)
                 ->subject("Order {$order->order_number}")
                 ->attachData($pdf->output(), "{$order->order_number}.pdf");
         });
 
         return back()->with('status', 'Order PDF sent.');
+    }
+
+    public function accept(int $id, string $token)
+    {
+        $result = DB::transaction(function () use ($id, $token): array {
+            $order = Order::query()
+                ->with(['client', 'user'])
+                ->lockForUpdate()
+                ->where('id', $id)
+                ->where('acceptance_token', $token)
+                ->firstOrFail();
+
+            $existingInvoice = $order->invoices()->latest('id')->first();
+
+            if ($order->status === 'accepted' || $existingInvoice) {
+                if ($order->status !== 'accepted') {
+                    $order->status = 'accepted';
+                    $order->save();
+                }
+
+                return [
+                    'state' => 'already_accepted',
+                    'order' => $order,
+                    'invoice' => $existingInvoice,
+                ];
+            }
+
+            if ($order->status === 'cancelled') {
+                return [
+                    'state' => 'already_rejected',
+                    'order' => $order,
+                    'invoice' => null,
+                ];
+            }
+
+            if ($this->isAcceptanceTokenExpired($order)) {
+                return [
+                    'state' => 'expired',
+                    'order' => $order,
+                    'invoice' => null,
+                ];
+            }
+
+            $order->status = 'accepted';
+            $order->save();
+
+            $items = $order->items()
+                ->get()
+                ->map(fn ($item) => [
+                    'order_item_id' => $item->id,
+                    'qty' => (float) $item->qty_remaining,
+                ])
+                ->filter(fn ($item) => $item['qty'] > 0)
+                ->values()
+                ->all();
+
+            if ($items === []) {
+                return [
+                    'state' => 'already_accepted',
+                    'order' => $order,
+                    'invoice' => null,
+                ];
+            }
+
+            $invoice = $this->invoiceService->createPartialInvoice(
+                $order->fresh(['client', 'items']),
+                $items,
+                'Auto-created after client accepted the order.'
+            );
+
+            $order->refresh();
+            $order->status = 'accepted';
+            $order->save();
+
+            return [
+                'state' => 'accepted',
+                'order' => $order->fresh(['client', 'user']),
+                'invoice' => $invoice->fresh(),
+            ];
+        });
+
+        if ($result['state'] === 'expired') {
+            return view('orders.accept-expired', [
+                'order' => $result['order'],
+            ]);
+        }
+
+        if ($result['state'] === 'already_rejected') {
+            return view('orders.reject-success', [
+                'order' => $result['order'],
+                'already' => true,
+            ]);
+        }
+
+        if ($result['state'] === 'already_accepted') {
+            return view('orders.already-accepted', [
+                'order' => $result['order'],
+                'invoice' => $result['invoice'],
+            ]);
+        }
+
+        if ($result['state'] === 'accepted' && $result['invoice'] instanceof Invoice) {
+            $this->sendOrderAcceptedNotification($result['order'], $result['invoice']);
+        }
+
+        return view('orders.accept-success', [
+            'order' => $result['order'],
+            'invoice' => $result['invoice'],
+        ]);
+    }
+
+    public function reject(int $id, string $token)
+    {
+        $result = DB::transaction(function () use ($id, $token): array {
+            $order = Order::query()
+                ->lockForUpdate()
+                ->where('id', $id)
+                ->where('acceptance_token', $token)
+                ->firstOrFail();
+
+            if ($order->status === 'accepted' || $order->invoices()->exists()) {
+                return [
+                    'state' => 'already_accepted',
+                    'order' => $order,
+                ];
+            }
+
+            if ($order->status === 'cancelled') {
+                return [
+                    'state' => 'already_rejected',
+                    'order' => $order,
+                ];
+            }
+
+            if ($this->isAcceptanceTokenExpired($order)) {
+                return [
+                    'state' => 'expired',
+                    'order' => $order,
+                ];
+            }
+
+            $order->status = 'cancelled';
+            $order->save();
+
+            return [
+                'state' => 'rejected',
+                'order' => $order,
+            ];
+        });
+
+        if ($result['state'] === 'expired') {
+            return view('orders.accept-expired', [
+                'order' => $result['order'],
+            ]);
+        }
+
+        if ($result['state'] === 'already_accepted') {
+            $invoice = $result['order']->invoices()->latest('id')->first();
+
+            return view('orders.already-accepted', [
+                'order' => $result['order'],
+                'invoice' => $invoice,
+            ]);
+        }
+
+        return view('orders.reject-success', [
+            'order' => $result['order'],
+            'already' => $result['state'] === 'already_rejected',
+        ]);
     }
 
     public function updateStatus(Request $request, Order $order)
@@ -179,6 +357,32 @@ class OrderController extends Controller
     {
         if ($order->user_id !== auth()->id()) {
             abort(403);
+        }
+    }
+
+    protected function isAcceptanceTokenExpired(Order $order): bool
+    {
+        return (bool) $order->created_at?->lt(now()->subHours(24));
+    }
+
+    protected function sendOrderAcceptedNotification(Order $order, Invoice $invoice): void
+    {
+        if (! filled($order->user?->email)) {
+            return;
+        }
+
+        apply_user_mail_config((int) $order->user_id);
+
+        try {
+            Mail::send('emails.order_accepted_notification', [
+                'order' => $order,
+                'invoice' => $invoice,
+            ], function ($message) use ($order, $invoice) {
+                $message->to($order->user->email)
+                    ->subject("Order {$order->order_number} accepted - Invoice {$invoice->invoice_number}");
+            });
+        } catch (\Throwable $exception) {
+            report($exception);
         }
     }
 }

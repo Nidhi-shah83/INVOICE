@@ -17,6 +17,7 @@ class Order extends Model
         'quote_id',
         'order_number',
         'status',
+        'acceptance_token',
         'total_amount',
         'billed_amount',
     ];

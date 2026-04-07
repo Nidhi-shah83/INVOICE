@@ -65,7 +65,8 @@ Route::middleware(['auth', 'mail.settings'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::get('quotes/accept/{token}', [QuoteController::class, 'accept'])
-    ->middleware('auth')
-    ->name('quotes.accept');
+Route::get('/quote/approve/{id}/{token}', [QuoteController::class, 'approve'])->name('quotes.approve');
+Route::get('quotes/accept/{token}', [QuoteController::class, 'accept'])->name('quotes.accept');
+Route::get('/order/accept/{id}/{token}', [OrderController::class, 'accept'])->name('orders.accept');
+Route::get('/order/reject/{id}/{token}', [OrderController::class, 'reject'])->name('orders.reject');
 require __DIR__.'/auth.php';
