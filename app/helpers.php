@@ -1,24 +1,88 @@
 <?php
 
+use App\Models\Setting;
 use App\Services\SettingService;
+use Illuminate\Support\Facades\Crypt;
 
 if (! function_exists('setting')) {
     function setting(string $key, $default = null)
     {
-        $hasExplicitDefault = func_num_args() >= 2;
+        if (! auth()->check()) {
+            return func_num_args() >= 2 ? $default : SettingService::defaultFor($key);
+        }
+
+        $value = Setting::query()
+            ->where('key', $key)
+            ->value('value');
+
+        if ($value === null) {
+            return func_num_args() >= 2 ? $default : SettingService::defaultFor($key);
+        }
+
+        return decode_setting_value($key, $value);
+    }
+}
+
+if (! function_exists('setting_for_user')) {
+    function setting_for_user(int $userId, string $key, $default = null)
+    {
+        $value = Setting::query()
+            ->withoutGlobalScopes()
+            ->where('user_id', $userId)
+            ->where('key', $key)
+            ->value('value');
+
+        if ($value === null) {
+            return $default;
+        }
+
+        return decode_setting_value($key, $value);
+    }
+}
+
+if (! function_exists('apply_user_mail_config')) {
+    function apply_user_mail_config(?int $userId = null): void
+    {
+        $resolvedUserId = $userId ?: auth()->id();
+        if (! $resolvedUserId) {
+            return;
+        }
+
+        config([
+            'mail.default' => setting_for_user($resolvedUserId, 'mail_mailer', config('mail.default')),
+            'mail.mailers.smtp.scheme' => setting_for_user($resolvedUserId, 'mail_scheme', config('mail.mailers.smtp.scheme')),
+            'mail.mailers.smtp.host' => setting_for_user($resolvedUserId, 'mail_host', config('mail.mailers.smtp.host')),
+            'mail.mailers.smtp.port' => setting_for_user($resolvedUserId, 'mail_port', config('mail.mailers.smtp.port')),
+            'mail.mailers.smtp.username' => setting_for_user($resolvedUserId, 'mail_username', config('mail.mailers.smtp.username')),
+            'mail.mailers.smtp.password' => setting_for_user($resolvedUserId, 'mail_password', config('mail.mailers.smtp.password')),
+            'mail.from.address' => setting_for_user($resolvedUserId, 'mail_from_address', config('mail.from.address')),
+            'mail.from.name' => setting_for_user($resolvedUserId, 'mail_from_name', config('mail.from.name')),
+        ]);
+    }
+}
+
+if (! function_exists('decode_setting_value')) {
+    function decode_setting_value(string $key, $value)
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $value = $decoded;
+            }
+        }
+
+        if ($key !== 'mail_password' || ! is_string($value) || $value === '') {
+            return $value;
+        }
 
         try {
-            $service = app(SettingService::class);
-
-            return $hasExplicitDefault
-                ? $service->get($key, $default)
-                : $service->get($key);
-        } catch (\Throwable $exception) {
-            if ($hasExplicitDefault) {
-                return $default;
-            }
-
-            return SettingService::defaultFor($key);
+            return Crypt::decryptString($value);
+        } catch (\Throwable) {
+            return $value;
         }
     }
 }
@@ -72,61 +136,12 @@ if (! function_exists('get_currency')) {
         $locs = locations();
 
         if (! isset($locs[$country])) {
-            return ['code' => 'INR', 'symbol' => '₹'];
+            return ['code' => 'INR', 'symbol' => 'Rs'];
         }
 
         return [
             'code' => $locs[$country]['currency'] ?? 'INR',
-            'symbol' => $locs[$country]['symbol'] ?? '₹',
+            'symbol' => $locs[$country]['symbol'] ?? 'Rs',
         ];
-    }
-}
-
-if (! function_exists('update_dotenv')) {
-    function update_dotenv(array $values): bool
-    {
-        $path = base_path('.env');
-
-        if (! file_exists($path) || ! is_writable($path)) {
-            return false;
-        }
-
-        $content = file_get_contents($path);
-
-        foreach ($values as $key => $value) {
-            $pattern = '/^'.preg_quote($key, '/').'=.*$/m';
-            $replacement = $key.'='.format_dotenv_value($value);
-
-            if (preg_match($pattern, $content)) {
-                $content = preg_replace($pattern, $replacement, $content);
-            } else {
-                $content .= PHP_EOL.$replacement;
-            }
-        }
-
-        return file_put_contents($path, $content) !== false;
-    }
-}
-
-if (! function_exists('format_dotenv_value')) {
-    function format_dotenv_value($value): string
-    {
-        if ($value === null) {
-            return 'null';
-        }
-
-        if (is_bool($value)) {
-            return $value ? 'true' : 'false';
-        }
-
-        $value = (string) $value;
-
-        if (strtolower(trim($value)) === 'null') {
-            return 'null';
-        }
-
-        $escaped = str_replace('"', '\\"', $value);
-
-        return '"'.$escaped.'"';
     }
 }

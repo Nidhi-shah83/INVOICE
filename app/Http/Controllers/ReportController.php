@@ -36,28 +36,25 @@ class ReportController extends ModuleResourceController
 
     private function generateReportData(string $reportType, string $fromDate, string $toDate): array
     {
-        $userId = auth()->id();
-
         switch ($reportType) {
             case 'gst':
-                return $this->getGstSummary($userId, $fromDate, $toDate);
+                return $this->getGstSummary($fromDate, $toDate);
             case 'revenue_by_client':
-                return $this->getRevenueByClient($userId, $fromDate, $toDate);
+                return $this->getRevenueByClient($fromDate, $toDate);
             case 'ar_aging':
-                return $this->getArAging($userId, $fromDate, $toDate);
+                return $this->getArAging($fromDate, $toDate);
             case 'ai_performance':
-                return $this->getAiPerformance($userId, $fromDate, $toDate);
+                return $this->getAiPerformance($fromDate, $toDate);
             case 'followup_insights':
-                return $this->getFollowupInsights($userId, $fromDate, $toDate);
+                return $this->getFollowupInsights($fromDate, $toDate);
             default:
                 return [];
         }
     }
 
-    private function getGstSummary(int $userId, string $fromDate, string $toDate): array
+    private function getGstSummary(string $fromDate, string $toDate): array
     {
-        return Invoice::where('user_id', $userId)
-            ->where('payment_status', 'paid')
+        return Invoice::where('payment_status', 'paid')
             ->whereBetween('issue_date', [$fromDate, $toDate])
             ->selectRaw("
                 DATE_FORMAT(issue_date, '%Y-%m') as month,
@@ -73,10 +70,9 @@ class ReportController extends ModuleResourceController
             ->toArray();
     }
 
-    private function getRevenueByClient(int $userId, string $fromDate, string $toDate): array
+    private function getRevenueByClient(string $fromDate, string $toDate): array
     {
-        return Invoice::where('user_id', $userId)
-            ->whereBetween('issue_date', [$fromDate, $toDate])
+        return Invoice::whereBetween('issue_date', [$fromDate, $toDate])
             ->with('client')
             ->selectRaw("
                 client_id,
@@ -100,10 +96,9 @@ class ReportController extends ModuleResourceController
             ->toArray();
     }
 
-    private function getArAging(int $userId, string $fromDate, string $toDate): array
+    private function getArAging(string $fromDate, string $toDate): array
     {
-        $invoices = Invoice::where('user_id', $userId)
-            ->where('status', 'sent')
+        $invoices = Invoice::where('status', 'sent')
             ->where('payment_status', '!=', 'paid')
             ->whereBetween('issue_date', [$fromDate, $toDate])
             ->get();
@@ -141,11 +136,10 @@ class ReportController extends ModuleResourceController
         return $buckets;
     }
 
-    private function getAiPerformance(int $userId, string $fromDate, string $toDate): array
+    private function getAiPerformance(string $fromDate, string $toDate): array
     {
-        $callLogs = InvoiceCallLog::whereHas('invoice', function ($query) use ($userId, $fromDate, $toDate) {
-            $query->where('user_id', $userId)
-                  ->whereBetween('issue_date', [$fromDate, $toDate]);
+        $callLogs = InvoiceCallLog::whereHas('invoice', function ($query) use ($fromDate, $toDate) {
+            $query->whereBetween('issue_date', [$fromDate, $toDate]);
         })->get();
 
         $totalCalls = $callLogs->count();
@@ -190,11 +184,10 @@ class ReportController extends ModuleResourceController
         ];
     }
 
-    private function getFollowupInsights(int $userId, string $fromDate, string $toDate): array
+    private function getFollowupInsights(string $fromDate, string $toDate): array
     {
-        return InvoiceCallLog::whereHas('invoice', function ($query) use ($userId, $fromDate, $toDate) {
-            $query->where('user_id', $userId)
-                  ->whereBetween('issue_date', [$fromDate, $toDate]);
+        return InvoiceCallLog::whereHas('invoice', function ($query) use ($fromDate, $toDate) {
+            $query->whereBetween('issue_date', [$fromDate, $toDate]);
         })
         ->with(['invoice.client'])
         ->get()

@@ -195,19 +195,6 @@ class SettingController extends Controller
         Config::set('mail.from.address', $validated['mail_from_address']);
         Config::set('mail.from.name', $validated['mail_from_name']);
 
-        if (function_exists('update_dotenv')) {
-            update_dotenv([
-                'MAIL_MAILER' => $validated['mail_mailer'],
-                'MAIL_SCHEME' => $mailScheme,
-                'MAIL_HOST' => $validated['mail_host'] ?? '',
-                'MAIL_PORT' => $validated['mail_port'] ?? '',
-                'MAIL_USERNAME' => $validated['mail_username'] ?? '',
-                'MAIL_PASSWORD' => $validated['mail_password'] ?? '',
-                'MAIL_FROM_ADDRESS' => $validated['mail_from_address'] ?? '',
-                'MAIL_FROM_NAME' => $validated['mail_from_name'] ?? '',
-            ]);
-        }
-
         $this->service->forgetCache();
 
         if ($request->boolean('send_test_email')) {

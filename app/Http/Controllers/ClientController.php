@@ -28,8 +28,9 @@ class ClientController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateClient($request);
+        $data['user_id'] = (int) auth()->id();
 
-        $request->user()->clients()->create($data);
+        Client::create($data);
 
         return redirect()->route('clients.index')->with('status', 'Client created.');
     }

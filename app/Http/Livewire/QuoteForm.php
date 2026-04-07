@@ -45,7 +45,7 @@ class QuoteForm extends Component
         $this->invoiceService = $this->invoiceService ?? app(InvoiceService::class);
         $this->quote = $quote;
 
-        $this->clients = Client::where('user_id', auth()->id())->orderBy('name')->get();
+        $this->clients = Client::query()->orderBy('name')->get();
         $this->products = Product::where('user_id', auth()->id())->orderBy('name')->get();
 
         $this->issue_date = $quote?->issue_date?->format('Y-m-d') ?? now()->format('Y-m-d');
@@ -294,6 +294,6 @@ class QuoteForm extends Component
             return null;
         }
 
-        return Client::where('user_id', auth()->id())->find($clientId);
+        return Client::find($clientId);
     }
 }
