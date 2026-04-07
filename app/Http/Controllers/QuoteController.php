@@ -23,7 +23,7 @@ class QuoteController extends Controller
         protected InvoiceService $invoiceService,
         protected SettingService $settingService,
     ) {
-        $this->middleware('auth:sanctum')->except('accept');
+        $this->middleware('auth');
     }
 
     public function index(Request $request)
@@ -64,7 +64,7 @@ class QuoteController extends Controller
     public function create()
     {
         return view('quotes.create', [
-            'clients' => Client::where('user_id', auth()->id())->orderBy('name')->get(),
+            'clients' => Client::query()->orderBy('name')->get(),
         ]);
     }
 
@@ -102,7 +102,7 @@ class QuoteController extends Controller
 
         return view('quotes.edit', [
             'quote' => $quote,
-            'clients' => Client::where('user_id', auth()->id())->orderBy('name')->get(),
+            'clients' => Client::query()->orderBy('name')->get(),
         ]);
     }
 
@@ -127,6 +127,7 @@ class QuoteController extends Controller
     public function send(Quote $quote)
     {
         $this->ensureOwnership($quote);
+        apply_user_mail_config((int) $quote->user_id);
 
         $quote->load('client', 'items');
         $token = (string) Str::uuid();
@@ -241,9 +242,9 @@ class QuoteController extends Controller
     {
         return [
             'quotes' => Quote::where('user_id', $userId)->count(),
-            'orders' => Order::where('user_id', $userId)->count(),
-            'invoices' => Invoice::where('user_id', $userId)->count(),
-            'paid' => Invoice::where('user_id', $userId)->where('status', 'paid')->count(),
+            'orders' => Order::count(),
+            'invoices' => Invoice::count(),
+            'paid' => Invoice::where('status', 'paid')->count(),
         ];
     }
 

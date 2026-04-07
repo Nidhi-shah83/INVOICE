@@ -26,18 +26,16 @@ class InvoiceController extends Controller
         protected SettingService $settings,
     )
     {
-        $this->middleware('auth')->except(['overdue', 'markPaid', 'showPaymentPage', 'processPayment']);
+        $this->middleware('auth');
     }
 
     public function index(Request $request)
     {
-        $user = $request->user();
         $status = (string) $request->query('status', '');
         $search = trim((string) $request->query('search', ''));
 
         $baseQuery = Invoice::query()
-            ->with('client')
-            ->where('user_id', $user->id);
+            ->with('client');
 
         if ($search !== '') {
             $baseQuery->where(function ($builder) use ($search) {
@@ -93,11 +91,8 @@ class InvoiceController extends Controller
             ]);
         }
 
-        $userId = (int) $request->user()->id;
-
         $invoices = Invoice::query()
             ->with('client:id,name,email,phone')
-            ->where('user_id', $userId)
             ->where(function ($builder) use ($term) {
                 $builder->where('invoice_number', 'like', "%{$term}%")
                     ->orWhereHas('client', function ($clientQuery) use ($term) {
@@ -130,7 +125,6 @@ class InvoiceController extends Controller
     public function getCallLogs(string $invoice_number): JsonResponse
     {
         $invoice = Invoice::query()
-            ->where('user_id', (int) auth()->id())
             ->where('invoice_number', $invoice_number)
             ->firstOrFail();
 
@@ -164,16 +158,13 @@ class InvoiceController extends Controller
             $prefill = $this->decodeLegacyPrefill($request->query('prefill'));
         }
 
-        $userId = (int) $request->user()->id;
-
         return view('invoices.create', [
             'prefill' => is_array($prefill) ? $prefill : [],
             'clients' => Client::query()
-                ->where('user_id', $userId)
                 ->orderBy('name')
                 ->get(),
             'products' => \Illuminate\Support\Facades\DB::table('products')
-                ->where('user_id', $userId)
+                ->where('user_id', (int) $request->user()->id)
                 ->orderBy('name')
                 ->get(),
         ]);
@@ -227,7 +218,6 @@ class InvoiceController extends Controller
         }
 
         $client = $this->resolveClient(
-            userId: $user->id,
             vendorName: trim((string) $data['vendor_name']),
             gstin: isset($data['gstin']) ? strtoupper(trim((string) $data['gstin'])) : null,
         );
@@ -284,8 +274,6 @@ class InvoiceController extends Controller
 
     public function show(Invoice $invoice)
     {
-        $this->authorizeInvoice($invoice);
-
         $invoice->load(['client', 'order', 'items', 'payments']);
 
         return view('invoices.show', compact('invoice'));
@@ -293,8 +281,6 @@ class InvoiceController extends Controller
 
     public function download(Invoice $invoice)
     {
-        $this->authorizeInvoice($invoice);
-
         $pdf = Pdf::loadView('pdf.invoice', compact('invoice'))
             ->setPaper('a4', 'portrait');
 
@@ -303,8 +289,6 @@ class InvoiceController extends Controller
 
     public function send(Invoice $invoice)
     {
-        $this->authorizeInvoice($invoice);
-
         $this->service->sendInvoice($invoice);
 
         return redirect()->route('invoices.show', $invoice)->with('status', 'Invoice sent.');
@@ -352,8 +336,6 @@ class InvoiceController extends Controller
 
     public function markPaidManually(Request $request, Invoice $invoice)
     {
-        $this->authorizeInvoice($invoice);
-
         if ($request->expectsJson()) {
             return $this->recordPaymentAndRespond($request, $invoice);
         }
@@ -386,9 +368,9 @@ class InvoiceController extends Controller
         return is_array($payload) ? $payload : [];
     }
 
-    protected function resolveClient(int $userId, string $vendorName, ?string $gstin = null): Client
+    protected function resolveClient(string $vendorName, ?string $gstin = null): Client
     {
-        $clientQuery = Client::where('user_id', $userId);
+        $clientQuery = Client::query();
 
         if ($gstin) {
             $existingByGstin = (clone $clientQuery)->where('gstin', $gstin)->first();
@@ -410,7 +392,7 @@ class InvoiceController extends Controller
         $token = now()->format('YmdHis');
 
         return Client::create([
-            'user_id' => $userId,
+            'user_id' => (int) auth()->id(),
             'name' => $vendorName,
             'email' => "{$slug}-{$token}@example.com",
             'phone' => 'N/A',
@@ -418,13 +400,6 @@ class InvoiceController extends Controller
             'state' => (string) config('invoice.state', 'Karnataka'),
             'address' => 'N/A',
         ]);
-    }
-
-    protected function authorizeInvoice(Invoice $invoice): void
-    {
-        if ($invoice->user_id !== auth()->id()) {
-            abort(403);
-        }
     }
 
     protected function ensureApiSecret(Request $request): void

@@ -29,12 +29,11 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $user = $request->user();
         $status = $request->query('status');
         $activeStatus = $status === 'all' ? null : $status;
         $search = trim((string) $request->query('search', ''));
 
-        $query = Order::with('client')->where('user_id', $user->id);
+        $query = Order::with('client');
 
         if ($activeStatus) {
             $query->where('status', $activeStatus);
@@ -98,6 +97,7 @@ class OrderController extends Controller
     public function sendPdf(Order $order)
     {
         $this->ensureOwnership($order);
+        apply_user_mail_config((int) $order->user_id);
 
         $order->load('client', 'items', 'quote');
         $logoPath = public_path('images/logo.png');

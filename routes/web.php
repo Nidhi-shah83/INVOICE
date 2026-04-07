@@ -41,6 +41,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('invoices/overdue', [InvoiceController::class, 'overdue'])->name('invoices.overdue');
     Route::patch('invoices/{invoice}/paid', [InvoiceController::class, 'markPaid'])->name('invoices.markPaid');
     Route::post('invoices/{invoice}/paid/manual', [InvoiceController::class, 'markPaidManually'])->name('invoices.markPaidManual');
+    Route::get('/pay-invoice/{invoice}', [InvoiceController::class, 'showPaymentPage'])->name('invoices.pay');
+    Route::post('/pay-invoice/{invoice}', [InvoiceController::class, 'processPayment'])->name('invoices.pay.process');
+    Route::view('/payment-success', 'payments.success')->name('payment.success');
 
     Route::get('ai-assistant', [AIController::class, 'chat'])->name('ai-assistant.index');
     Route::get('ai-assistant/chat', [AIController::class, 'chat'])->name('ai-assistant.chat');
@@ -64,10 +67,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::get('/pay-invoice/{invoice}', [InvoiceController::class, 'showPaymentPage'])->name('invoices.pay');
-Route::post('/pay-invoice/{invoice}', [InvoiceController::class, 'processPayment'])->name('invoices.pay.process');
-
-Route::view('/payment-success', 'payments.success')->name('payment.success');
-
-Route::get('quotes/accept/{token}', [QuoteController::class, 'accept'])->name('quotes.accept');
+Route::get('quotes/accept/{token}', [QuoteController::class, 'accept'])
+    ->middleware('auth')
+    ->name('quotes.accept');
 require __DIR__.'/auth.php';

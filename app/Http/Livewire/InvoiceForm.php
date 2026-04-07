@@ -59,7 +59,7 @@ class InvoiceForm extends Component
     public function render(): View
     {
         return view('livewire.invoice-form', [
-            'clients' => Client::where('user_id', auth()->id())->get(),
+            'clients' => Client::all(),
         ]);
     }
 }

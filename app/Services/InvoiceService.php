@@ -286,6 +286,7 @@ class InvoiceService extends ModuleService
             $quote->order_id = $order->id;
             $quote->save();
 
+            apply_user_mail_config((int) $quote->user_id);
             Mail::to($quote->client->email)
                 ->send(new OrderConfirmedMail($order->load(['items', 'client'])));
 
@@ -415,8 +416,9 @@ class InvoiceService extends ModuleService
 
         $invoice = $this->syncInvoicePaymentState($invoice);
 
-        $fromName = $this->settings->get('email_from_name', config('mail.from.name', 'Laravel'));
-        $fromAddress = $this->settings->get('email_from_address', config('mail.from.address', 'hello@example.com'));
+        apply_user_mail_config((int) $invoice->user_id);
+        $fromName = setting_for_user((int) $invoice->user_id, 'mail_from_name', config('mail.from.name', 'Laravel'));
+        $fromAddress = setting_for_user((int) $invoice->user_id, 'mail_from_address', config('mail.from.address', 'hello@example.com'));
         $emailSignature = $this->settings->get('email_signature', '');
 
         $mail = (new InvoiceSentMail($invoice, $paymentLink, $pdf))
@@ -467,8 +469,9 @@ class InvoiceService extends ModuleService
             $lockedInvoice = $this->recalculatePaymentStateFromLedger($lockedInvoice);
 
             if (! empty($lockedInvoice->client?->email)) {
-                $fromName = $this->settings->get('email_from_name', config('mail.from.name', 'Laravel'));
-                $fromAddress = $this->settings->get('email_from_address', config('mail.from.address', 'hello@example.com'));
+                apply_user_mail_config((int) $lockedInvoice->user_id);
+                $fromName = setting_for_user((int) $lockedInvoice->user_id, 'mail_from_name', config('mail.from.name', 'Laravel'));
+                $fromAddress = setting_for_user((int) $lockedInvoice->user_id, 'mail_from_address', config('mail.from.address', 'hello@example.com'));
                 $emailSignature = $this->settings->get('email_signature', '');
 
                 $mail = (new PaymentConfirmedMail($lockedInvoice, $payment))
