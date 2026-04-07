@@ -126,6 +126,6 @@ class Invoice extends Model
             return $map[$currency];
         }
 
-        return config('invoice.currency_symbol', 'Rs ');
+        return setting_for_user((int) $this->user_id, 'currency_symbol', 'Rs ');
     }
 }

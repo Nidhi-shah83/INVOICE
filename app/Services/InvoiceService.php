@@ -402,7 +402,7 @@ class InvoiceService extends ModuleService
                 'discount_type' => $invoiceTotals['discount_type'],
                 'discount_value' => $invoiceTotals['discount_value'],
                 'discount_amount' => $invoiceTotals['discount_amount'],
-                'currency' => $this->settings->get('currency', config('invoice.currency', 'INR')),
+                'currency' => $this->settings->get('currency', 'INR'),
             ]);
 
             $order->billed_amount += $invoiceTotals['grand_total'];
@@ -459,15 +459,15 @@ class InvoiceService extends ModuleService
         $invoice = $this->syncInvoicePaymentState($invoice);
 
         apply_user_mail_config((int) $invoice->user_id);
-        $fromName = setting_for_user((int) $invoice->user_id, 'mail_from_name', config('mail.from.name', 'Laravel'));
-        $fromAddress = setting_for_user((int) $invoice->user_id, 'mail_from_address', config('mail.from.address', 'hello@example.com'));
-        $emailSignature = $this->settings->get('email_signature', '');
+        $fromName = setting_for_user((int) $invoice->user_id, 'mail_from_name', 'Invoice App');
+        $fromAddress = setting_for_user((int) $invoice->user_id, 'mail_from_address', 'no-reply@example.com');
+        $emailSignature = setting_for_user((int) $invoice->user_id, 'email_signature', '');
 
         $mail = (new InvoiceSentMail($invoice, $paymentLink, $pdf))
             ->from($fromAddress, $fromName)
             ->with([
                 'emailSignature' => $emailSignature,
-                'businessName' => $this->settings->get('business_name', config('invoice.business_name')),
+                'businessName' => setting_for_user((int) $invoice->user_id, 'business_name', 'Invoice Pro'),
             ]);
 
         Mail::to($invoice->client->email)->send($mail);
@@ -512,15 +512,15 @@ class InvoiceService extends ModuleService
 
             if (! empty($lockedInvoice->client?->email)) {
                 apply_user_mail_config((int) $lockedInvoice->user_id);
-                $fromName = setting_for_user((int) $lockedInvoice->user_id, 'mail_from_name', config('mail.from.name', 'Laravel'));
-                $fromAddress = setting_for_user((int) $lockedInvoice->user_id, 'mail_from_address', config('mail.from.address', 'hello@example.com'));
-                $emailSignature = $this->settings->get('email_signature', '');
+                $fromName = setting_for_user((int) $lockedInvoice->user_id, 'mail_from_name', 'Invoice App');
+                $fromAddress = setting_for_user((int) $lockedInvoice->user_id, 'mail_from_address', 'no-reply@example.com');
+                $emailSignature = setting_for_user((int) $lockedInvoice->user_id, 'email_signature', '');
 
                 $mail = (new PaymentConfirmedMail($lockedInvoice, $payment))
                     ->from($fromAddress, $fromName)
                     ->with([
                         'emailSignature' => $emailSignature,
-                        'businessName' => $this->settings->get('business_name', config('invoice.business_name')),
+                        'businessName' => setting_for_user((int) $lockedInvoice->user_id, 'business_name', 'Invoice Pro'),
                     ]);
 
                 Mail::to($lockedInvoice->client->email)->send($mail);

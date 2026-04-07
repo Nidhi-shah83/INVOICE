@@ -14,14 +14,7 @@
         @php
             $brandName = setting('business_name', config('app.name', 'Invoice App'));
             $pageTitle = trim($__env->yieldContent('page-title'));
-            $faviconPath = setting('favicon');
-            $faviconPath = is_string($faviconPath) ? ltrim(preg_replace('#^/?storage/#', '', $faviconPath), '/') : null;
-            $faviconUrl = asset('favicon.ico');
-
-            if (! empty($faviconPath) && \Illuminate\Support\Facades\Storage::disk('public')->exists($faviconPath)) {
-                $faviconMime = \Illuminate\Support\Facades\Storage::disk('public')->mimeType($faviconPath) ?: 'image/png';
-                $faviconUrl = 'data:'.$faviconMime.';base64,'.base64_encode(\Illuminate\Support\Facades\Storage::disk('public')->get($faviconPath));
-            }
+            $faviconUrl = setting_media_url('favicon') ?: asset('favicon.ico');
         @endphp
 
         <title>{{ $pageTitle !== '' ? $pageTitle.' | '.$brandName : $brandName }}</title>
@@ -45,3 +38,4 @@
         </main>
     </body>
 </html>
+

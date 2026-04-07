@@ -188,7 +188,7 @@
     </head>
     <body>
         @php
-            $currencySymbol = config('invoice.currency_symbol', '₹');
+            $currencySymbol = setting('currency_symbol', 'Rs');
             $formatted = fn ($value) => $currencySymbol . number_format($value, 2);
             $taxableAmount = $quote->subtotal - $quote->discount_amount;
         @endphp
@@ -206,11 +206,11 @@
                 <div class="section-row">
                     <div class="box">
                         <h4>From</h4>
-                        <p><strong>{{ config('invoice.business_name') }}</strong></p>
-                        <p>{{ config('invoice.address_line') ?? '123 Corporate Blvd, City, State ZIP' }}</p>
-                        <p>GSTIN {{ config('invoice.gstin') }}</p>
-                        <p>{{ config('invoice.email') }}</p>
-                        <p>{{ config('invoice.phone') }}</p>
+                        <p><strong>{{ setting('business_name', 'Invoice Pro') }}</strong></p>
+                        <p>{{ setting('address', 'Address not set') }}</p>
+                        <p>GSTIN {{ setting('gstin', '-') }}</p>
+                        <p>{{ setting('email', '') }}</p>
+                        <p>{{ setting('phone', '') }}</p>
                     </div>
                     <div class="box">
                         <h4>Bill To</h4>

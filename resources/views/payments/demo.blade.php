@@ -1,6 +1,13 @@
 @extends('layouts.guest')
 
 @section('content')
+    @php
+        $currencySymbol = setting('currency_symbol', 'Rs');
+        $upiId = setting('upi_id');
+        $bankName = setting('bank_name');
+        $accountNumber = setting('account_number');
+        $ifscCode = setting('ifsc_code');
+    @endphp
     <style>
         :root {
             --card-bg: #ffffff;
@@ -169,7 +176,7 @@
             <div class="payment-header">
                 <p>Invoice Payment</p>
                 <h1>Invoice {{ $invoice->invoice_number }}</h1>
-                <p class="payment-amount">Amount: {{ $invoice->formatted_grand_total }}</p>
+                <p class="payment-amount">Amount: {{ $currencySymbol }}{{ number_format($invoice->amount_due, 2) }}</p>
             </div>
 
             <form method="POST" action="{{ route('invoices.pay.process', $invoice->id) }}">
@@ -199,7 +206,13 @@
                                 <rect x="98" y="106" width="10" height="10" fill="#111827"/>
                             </svg>
                         </div>
-                        <p class="payment-note" style="text-align: left; margin-top: 8px;">Scan with your UPI app to complete the payment.</p>
+                        <p class="payment-note" style="text-align: left; margin-top: 8px;">
+                            @if($upiId)
+                                Scan with your UPI app or pay to <strong>{{ $upiId }}</strong>.
+                            @else
+                                Scan with your UPI app to complete the payment.
+                            @endif
+                        </p>
                     </div>
 
                     <div class="payment-block">
@@ -216,13 +229,29 @@
                         <h3>Netbanking</h3>
                         <select class="payment-select">
                             <option value="">Select Bank</option>
+                            @if($bankName)
+                                <option>{{ $bankName }}</option>
+                            @endif
                             <option>State Bank of India</option>
                             <option>HDFC Bank</option>
                             <option>ICICI Bank</option>
                             <option>Axis Bank</option>
                             <option>Kotak Mahindra Bank</option>
                         </select>
-                        <p class="payment-note" style="margin-top: 4px;">We redirect to your chosen bank for secure processing.</p>
+                        <p class="payment-note" style="margin-top: 4px;">
+                            @if($bankName || $accountNumber || $ifscCode)
+                                Beneficiary:
+                                {{ $bankName ?: 'Bank not set' }}
+                                @if($accountNumber)
+                                    | A/C: {{ $accountNumber }}
+                                @endif
+                                @if($ifscCode)
+                                    | IFSC: {{ $ifscCode }}
+                                @endif
+                            @else
+                                We redirect to your chosen bank for secure processing.
+                            @endif
+                        </p>
                     </div>
                 </div>
 

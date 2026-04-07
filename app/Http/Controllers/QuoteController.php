@@ -173,11 +173,7 @@ class QuoteController extends Controller
         $this->ensureOwnership($quote);
 
         $quote->load('client', 'items');
-
-        $logoPath = public_path('images/logo.png');
-        $logo = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : null;
-
-        $pdf = Pdf::loadView('quotes.pdf', compact('quote', 'logo'))
+        $pdf = Pdf::loadView('quotes.pdf', compact('quote'))
             ->setPaper('a4', 'portrait')
             ->setOptions([
                 'dpi' => 150,
@@ -242,9 +238,9 @@ class QuoteController extends Controller
     {
         return [
             'quotes' => Quote::where('user_id', $userId)->count(),
-            'orders' => Order::count(),
-            'invoices' => Invoice::count(),
-            'paid' => Invoice::where('status', 'paid')->count(),
+            'orders' => Order::where('user_id', $userId)->count(),
+            'invoices' => Invoice::where('user_id', $userId)->count(),
+            'paid' => Invoice::where('user_id', $userId)->where('status', 'paid')->count(),
         ];
     }
 

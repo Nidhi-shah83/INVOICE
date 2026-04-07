@@ -4,7 +4,7 @@
 
 @php
     $viewOnly = request()->boolean('view');
-    $currencySymbol = setting('currency_symbol', config('invoice.currency_symbol', 'Rs '));
+    $currencySymbol = setting('currency_symbol', 'Rs ');
 @endphp
 
 @section('primary-action')
@@ -34,7 +34,7 @@
             paymentStatus: @js((string) $invoice->payment_status),
             invoiceStatus: @js((string) $invoice->status),
             isOverdue: @js((bool) $invoice->is_overdue),
-            currencySymbol: @js(setting('currency_symbol', config('invoice.currency_symbol', 'Rs '))),
+            currencySymbol: @js(setting('currency_symbol', 'Rs ')),
             defaultOrderId: @js((string) ($invoice->order?->order_number ?? $invoice->razorpay_order_id ?? $invoice->invoice_number)),
             invoiceNumber: @js($invoice->invoice_number),
         })"
@@ -60,10 +60,10 @@
                 <div class="space-y-2 rounded-2xl border border-slate-100 bg-slate-50 p-4">
                     <p class="text-xs uppercase tracking-[0.4em] text-slate-500">From</p>
                     <p><strong>{{ setting('business_name') }}</strong></p>
-                    <p>{{ setting('address', config('invoice.address_line', '123 Corporate Blvd, City, State ZIP')) }}</p>
+                    <p>{{ setting('address', 'Address not set') }}</p>
                     <p>GSTIN {{ setting('gstin') }}</p>
-                    <p>{{ config('invoice.email') }}</p>
-                    <p>{{ config('invoice.phone') }}</p>
+                    <p>{{ setting('email', 'Email not set') }}</p>
+                    <p>{{ setting('phone', 'Phone not set') }}</p>
                 </div>
                 <div class="space-y-2 rounded-2xl border border-slate-100 bg-slate-50 p-4">
                     <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Bill To</p>

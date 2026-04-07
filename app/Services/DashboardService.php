@@ -3,12 +3,11 @@
 namespace App\Services;
 
 use App\Models\Invoice;
+use App\Models\InvoiceCallLog;
 use App\Models\Order;
 use App\Models\Payment;
-use App\Models\InvoiceCallLog;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardService
 {
@@ -17,191 +16,139 @@ class DashboardService
         $user = Auth::user();
         $today = Carbon::today();
         $monthStart = Carbon::now()->startOfMonth();
+        $monthEnd = Carbon::now()->endOfMonth();
+
+        $invoiceMetrics = Invoice::query()
+            ->where('user_id', (int) $user->id)
+            ->selectRaw("COALESCE(SUM(CASE WHEN payment_status IN ('unpaid','partial') THEN amount_due ELSE 0 END), 0) as unpaid_amount")
+            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'sent' AND due_date < ? THEN amount_due ELSE 0 END), 0) as overdue_amount", [$today->toDateString()])
+            ->first();
+
+        $totalRevenue = (float) Payment::query()
+            ->join('invoices', 'invoices.id', '=', 'payments.invoice_id')
+            ->where('invoices.user_id', (int) $user->id)
+            ->where('payments.status', 'captured')
+            ->whereBetween('payments.created_at', [$monthStart, $monthEnd])
+            ->selectRaw('COALESCE(SUM(payments.amount), 0) as total_revenue')
+            ->value('total_revenue');
 
         return [
-            // 1. STAT CARDS DATA
-            'total_revenue' => $this->getTotalRevenue($user->id, $monthStart),
-            'unpaid_amount' => $this->getUnpaidAmount($user->id),
-            'overdue_amount' => $this->getOverdueAmount($user->id, $today),
-            'active_orders' => $this->getActiveOrdersCount($user->id),
-
-            // 2. RECENT INVOICES (Latest 5)
-            'recent_invoices' => $this->getRecentInvoices($user->id),
-
-            // 3. TOP CLIENTS
-            'top_clients' => $this->getTopClients($user->id),
-
-            // 4. OVERDUE INVOICES
-            'overdue_invoices' => $this->getOverdueInvoices($user->id, $today),
-
-            // 5. AI FOLLOW-UP ACTIVITY (Latest 10)
-            'followup_activity' => $this->getFollowupActivity($user->id),
-
-            // Business info
+            'total_revenue' => $totalRevenue,
+            'unpaid_amount' => (float) ($invoiceMetrics?->unpaid_amount ?? 0),
+            'overdue_amount' => (float) ($invoiceMetrics?->overdue_amount ?? 0),
+            'active_orders' => $this->getActiveOrdersCount((int) $user->id),
+            'recent_invoices' => $this->getRecentInvoices((int) $user->id),
+            'top_clients' => $this->getTopClients((int) $user->id),
+            'overdue_invoices' => $this->getOverdueInvoices((int) $user->id, $today),
+            'followup_activity' => $this->getFollowupActivity((int) $user->id),
             'business' => $this->getBusinessInfo(),
         ];
     }
 
-    /**
-     * Total revenue in current month
-     */
-    private function getTotalRevenue(int $userId, Carbon $monthStart): float
-    {
-        return (float) Payment::query()
-            ->whereHas('invoice', function ($q) use ($userId) {
-                $q->where('user_id', $userId);
-            })
-            ->where('status', 'captured')
-            ->whereBetween('created_at', [$monthStart, $monthStart->copy()->endOfMonth()])
-            ->sum('amount');
-    }
-
-    /**
-     * Sum of unpaid invoices (payment_status = 'unpaid' OR status = 'sent' with no full payment)
-     */
-    private function getUnpaidAmount(int $userId): float
-    {
-        return (float) Invoice::where('user_id', $userId)
-            ->where(function ($q) {
-                $q->where('payment_status', 'unpaid')
-                  ->orWhere('payment_status', 'partial');
-            })
-            ->sum('amount_due');
-    }
-
-    /**
-     * Sum of overdue invoices (status = 'sent' AND due_date < today)
-     */
-    private function getOverdueAmount(int $userId, Carbon $today): float
-    {
-        return (float) Invoice::where('user_id', $userId)
-            ->where('status', 'sent')
-            ->whereDate('due_date', '<', $today)
-            ->sum('amount_due');
-    }
-
-    /**
-     * Count of active orders (NOT in fully_billed, cancelled)
-     */
     private function getActiveOrdersCount(int $userId): int
     {
-        return Order::where('user_id', $userId)
+        return Order::query()
+            ->where('user_id', $userId)
             ->whereNotIn('status', ['fully_billed', 'cancelled'])
             ->count();
     }
 
-    /**
-     * Latest 5 invoices with client info
-     */
     private function getRecentInvoices(int $userId): array
     {
-        return Invoice::where('user_id', $userId)
+        return Invoice::query()
+            ->where('user_id', $userId)
             ->with('client:id,name,state')
             ->select('id', 'invoice_number', 'total', 'due_date', 'status', 'payment_status', 'client_id', 'amount_due')
             ->orderByDesc('created_at')
             ->limit(5)
             ->get()
-            ->map(function ($invoice) {
+            ->map(function (Invoice $invoice): array {
                 return [
                     'id' => $invoice->id,
                     'invoice_number' => $invoice->invoice_number,
                     'client_name' => $invoice->client?->name ?? 'N/A',
-                    'amount' => $invoice->total ?? 0,
-                    'amount_due' => $invoice->amount_due ?? 0,
+                    'amount' => (float) ($invoice->total ?? 0),
+                    'amount_due' => (float) ($invoice->amount_due ?? 0),
                     'due_date' => $invoice->due_date,
                     'status' => $invoice->status,
                     'payment_status' => $invoice->payment_status,
                 ];
             })
-            ->toArray();
+            ->all();
     }
 
-    /**
-     * Top 5 clients by total billed amount
-     */
     private function getTopClients(int $userId): array
     {
-        return Invoice::where('user_id', $userId)
-            ->select('client_id')
+        return Invoice::query()
+            ->where('user_id', $userId)
+            ->selectRaw('client_id, COALESCE(SUM(total), 0) as total_billed, COUNT(*) as invoice_count')
             ->groupBy('client_id')
-            ->selectRaw('client_id, SUM(total) as total_billed, COUNT(*) as invoice_count')
             ->with('client:id,name,state')
             ->orderByDesc('total_billed')
             ->limit(3)
             ->get()
-            ->map(function ($invoice) {
+            ->map(function (Invoice $invoice): array {
                 return [
                     'client_name' => $invoice->client?->name ?? 'N/A',
                     'state' => $invoice->client?->state ?? 'N/A',
-                    'total_billed' => $invoice->total_billed ?? 0,
-                    'invoice_count' => $invoice->invoice_count ?? 0,
+                    'total_billed' => (float) ($invoice->total_billed ?? 0),
+                    'invoice_count' => (int) ($invoice->invoice_count ?? 0),
                 ];
             })
-            ->toArray();
+            ->all();
     }
 
-    /**
-     * All overdue invoices (status = 'sent' AND due_date < today)
-     */
     private function getOverdueInvoices(int $userId, Carbon $today): array
     {
-        return Invoice::where('user_id', $userId)
+        return Invoice::query()
+            ->where('user_id', $userId)
             ->where('status', 'sent')
             ->whereDate('due_date', '<', $today)
             ->with('client:id,name')
             ->select('id', 'invoice_number', 'client_id', 'amount_due', 'due_date', 'status', 'payment_status')
-            ->orderByDesc('due_date')
+            ->orderBy('due_date')
+            ->limit(10)
             ->get()
-            ->map(function ($invoice) use ($today) {
-                $daysOverdue = $today->diffInDays($invoice->due_date);
+            ->map(function (Invoice $invoice) use ($today): array {
+                $daysOverdue = $invoice->due_date ? $today->diffInDays($invoice->due_date) : 0;
+
                 return [
                     'id' => $invoice->id,
                     'invoice_number' => $invoice->invoice_number,
                     'client_name' => $invoice->client?->name ?? 'N/A',
-                    'amount_due' => $invoice->amount_due ?? 0,
+                    'amount_due' => (float) ($invoice->amount_due ?? 0),
                     'due_date' => $invoice->due_date,
                     'days_overdue' => $daysOverdue,
                     'payment_status' => $invoice->payment_status,
                 ];
             })
-            ->toArray();
+            ->all();
     }
 
-    /**
-     * Latest 10 AI follow-up call logs with invoice & client info
-     */
     private function getFollowupActivity(int $userId): array
     {
-        // First get all invoices for the user
-        $invoiceNumbers = Invoice::where('user_id', $userId)
-            ->pluck('invoice_number')
-            ->toArray();
-
-        // Then get the call logs for those invoices
-        return InvoiceCallLog::whereIn('invoice_number', $invoiceNumbers)
-            ->with('invoice.client:id,name')
-            ->select(
-                'id',
-                'invoice_number',
-                'promised_payment_date',
-                'call_started_at',
-                'notes',
-                'conversation',
-                'confidence'
-            )
+        return InvoiceCallLog::query()
+            ->whereHas('invoice', fn ($query) => $query->where('user_id', $userId))
+            ->with(['invoice:id,invoice_number,client_id,total,amount_due,due_date', 'invoice.client:id,name'])
+            ->select('id', 'invoice_number', 'promised_payment_date', 'call_started_at', 'notes', 'conversation', 'confidence')
             ->orderByDesc('call_started_at')
             ->limit(10)
             ->get()
-            ->map(function ($log) {
+            ->map(function (InvoiceCallLog $log): array {
                 $invoice = $log->invoice;
-                $daysOverdue = Carbon::today()->diffInDays($invoice->due_date);
+                $daysOverdue = 0;
+
+                if ($invoice?->due_date && $invoice->due_date->isPast()) {
+                    $daysOverdue = (int) $invoice->due_date->diffInDays(Carbon::today());
+                }
+
                 return [
                     'id' => $log->id,
                     'invoice_number' => $log->invoice_number,
-                    'client_name' => $invoice->client?->name ?? 'N/A',
-                    'amount' => $invoice->total ?? 0,
-                    'amount_due' => $invoice->amount_due ?? 0,
-                    'days_overdue' => $daysOverdue < 0 ? 0 : $daysOverdue,
+                    'client_name' => $invoice?->client?->name ?? 'N/A',
+                    'amount' => (float) ($invoice?->total ?? 0),
+                    'amount_due' => (float) ($invoice?->amount_due ?? 0),
+                    'days_overdue' => $daysOverdue,
                     'last_contact' => $log->call_started_at,
                     'promised_payment_date' => $log->promised_payment_date,
                     'notes' => $log->notes,
@@ -209,25 +156,20 @@ class DashboardService
                     'confidence' => $log->confidence ?? 'low',
                 ];
             })
-            ->toArray();
+            ->all();
     }
 
-    /**
-     * Business configuration info
-     */
     private function getBusinessInfo(): array
     {
-        $invoice = config('invoice');
-
         return [
-            'name' => $invoice['business_name'] ?? 'Your Business Name',
+            'name' => setting('business_name', 'Invoice Pro'),
             'prefixes' => [
-                'invoice' => $invoice['invoice_prefix'] ?? 'INV',
-                'quote' => $invoice['quote_prefix'] ?? 'QUO',
-                'order' => $invoice['order_prefix'] ?? 'ORD',
+                'invoice' => setting('invoice_prefix', 'INV'),
+                'quote' => setting('quote_prefix', 'QT'),
+                'order' => setting('order_prefix', 'OR'),
             ],
             'defaults' => [
-                'due_days' => $invoice['default_due_days'] ?? 15,
+                'due_days' => (int) setting('default_due_days', 15),
             ],
         ];
     }

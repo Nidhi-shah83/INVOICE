@@ -4,7 +4,7 @@ return [
     'countries' => [
         'India' => [
             'currency' => 'INR',
-            'symbol' => '₹',
+            'symbol' => 'Rs',
             'states' => [
                 'AN' => 'Andaman and Nicobar Islands',
                 'AP' => 'Andhra Pradesh',
@@ -102,7 +102,7 @@ return [
         ],
         'United Kingdom' => [
             'currency' => 'GBP',
-            'symbol' => '£',
+            'symbol' => 'GBP',
             'states' => [
                 'ENG' => 'England',
                 'SCT' => 'Scotland',
@@ -112,7 +112,7 @@ return [
         ],
         'United Arab Emirates' => [
             'currency' => 'AED',
-            'symbol' => 'د.إ',
+            'symbol' => 'AED',
             'states' => [
                 'AZ' => 'Abu Dhabi',
                 'AJ' => 'Ajman',

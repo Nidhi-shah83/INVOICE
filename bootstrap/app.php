@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ApplyUserMailSettings;
 use App\Http\Middleware\N8nSecretMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'n8n.secret' => N8nSecretMiddleware::class,
+            'mail.settings' => ApplyUserMailSettings::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

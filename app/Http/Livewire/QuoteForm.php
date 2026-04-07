@@ -55,8 +55,8 @@ class QuoteForm extends Component
         $this->discount_type = $quote?->discount_type ?? 'flat';
         $this->discount_value = (float) ($quote?->discount_value ?? 0);
         $this->round_off = (float) ($quote?->round_off ?? 0);
-        $this->currency = $quote?->currency ?? 'INR';
-        $this->payment_terms = $quote?->payment_terms ?? config('invoice.quote_payment_terms');
+        $this->currency = $quote?->currency ?? setting('currency', 'INR');
+        $this->payment_terms = $quote?->payment_terms ?? setting('quote_payment_terms', 'Payment due within 15 days of acceptance');
         $this->terms_conditions = $quote?->terms_conditions;
         $this->salesperson = $quote?->salesperson;
         $this->reference_no = $quote?->reference_no;
@@ -161,7 +161,7 @@ class QuoteForm extends Component
             'totals' => $this->totals,
             'selectedClient' => $this->selectedClient,
             'quoteNumberPreview' => $this->quoteNumberPreview,
-            'currencySymbol' => config('invoice.currency_symbol', 'â‚¹'),
+            'currencySymbol' => setting('currency_symbol', 'Rs'),
             'products' => $this->products,
         ]);
     }
@@ -297,3 +297,4 @@ class QuoteForm extends Component
         return Client::find($clientId);
     }
 }
+

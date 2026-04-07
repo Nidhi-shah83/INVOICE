@@ -2,41 +2,42 @@
 
 use App\Models\Setting;
 use App\Services\SettingService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Storage;
 
 if (! function_exists('setting')) {
-    function setting(string $key, $default = null)
+    function setting($key, $default = null)
     {
-        if (! auth()->check()) {
-            return func_num_args() >= 2 ? $default : SettingService::defaultFor($key);
+        $service = app(SettingService::class);
+
+        if (func_num_args() === 1) {
+            return $service->get($key);
         }
 
-        $value = Setting::query()
-            ->where('key', $key)
-            ->value('value');
-
-        if ($value === null) {
-            return func_num_args() >= 2 ? $default : SettingService::defaultFor($key);
-        }
-
-        return decode_setting_value($key, $value);
+        return $service->get($key, $default);
     }
 }
 
 if (! function_exists('setting_for_user')) {
     function setting_for_user(int $userId, string $key, $default = null)
     {
-        $value = Setting::query()
-            ->withoutGlobalScopes()
-            ->where('user_id', $userId)
-            ->where('key', $key)
-            ->value('value');
+        $settings = Cache::remember("settings_user_{$userId}", 3600, function () use ($userId): array {
+            return Setting::query()
+                ->withoutGlobalScopes()
+                ->where('user_id', $userId)
+                ->get(['key', 'value'])
+                ->mapWithKeys(function (Setting $setting): array {
+                    return [$setting->key => decode_setting_value($setting->key, $setting->value)];
+                })
+                ->all();
+        });
 
-        if ($value === null) {
-            return $default;
+        if (array_key_exists($key, $settings)) {
+            return $settings[$key];
         }
 
-        return decode_setting_value($key, $value);
+        return $default;
     }
 }
 
@@ -49,38 +50,34 @@ if (! function_exists('apply_user_mail_config')) {
         }
 
         config([
-            'mail.default' => setting_for_user($resolvedUserId, 'mail_mailer', config('mail.default')),
-            'mail.mailers.smtp.scheme' => setting_for_user($resolvedUserId, 'mail_scheme', config('mail.mailers.smtp.scheme')),
-            'mail.mailers.smtp.host' => setting_for_user($resolvedUserId, 'mail_host', config('mail.mailers.smtp.host')),
-            'mail.mailers.smtp.port' => setting_for_user($resolvedUserId, 'mail_port', config('mail.mailers.smtp.port')),
-            'mail.mailers.smtp.username' => setting_for_user($resolvedUserId, 'mail_username', config('mail.mailers.smtp.username')),
-            'mail.mailers.smtp.password' => setting_for_user($resolvedUserId, 'mail_password', config('mail.mailers.smtp.password')),
-            'mail.from.address' => setting_for_user($resolvedUserId, 'mail_from_address', config('mail.from.address')),
-            'mail.from.name' => setting_for_user($resolvedUserId, 'mail_from_name', config('mail.from.name')),
+            'mail.default' => setting_for_user($resolvedUserId, 'mail_mailer', 'smtp'),
+            'mail.mailers.smtp.host' => setting_for_user($resolvedUserId, 'mail_host'),
+            'mail.mailers.smtp.port' => setting_for_user($resolvedUserId, 'mail_port'),
+            'mail.mailers.smtp.username' => setting_for_user($resolvedUserId, 'mail_username'),
+            'mail.mailers.smtp.password' => setting_for_user($resolvedUserId, 'mail_password'),
+            'mail.from.address' => setting_for_user($resolvedUserId, 'mail_from_address'),
+            'mail.from.name' => setting_for_user($resolvedUserId, 'mail_from_name'),
         ]);
+
+        if (app()->bound('mail.manager')) {
+            app('mail.manager')->forgetMailers();
+        }
     }
 }
 
 if (! function_exists('decode_setting_value')) {
     function decode_setting_value(string $key, $value)
     {
-        if ($value === null) {
-            return null;
+        if ($value === null || $value === '') {
+            return $value;
         }
 
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $value = $decoded;
-            }
-        }
-
-        if ($key !== 'mail_password' || ! is_string($value) || $value === '') {
+        if ($key !== 'mail_password') {
             return $value;
         }
 
         try {
-            return Crypt::decryptString($value);
+            return Crypt::decryptString((string) $value);
         } catch (\Throwable) {
             return $value;
         }
@@ -109,7 +106,7 @@ if (! function_exists('setting_bool')) {
 }
 
 if (! function_exists('locations')) {
-    function locations()
+    function locations(): array
     {
         return config('locations.countries', []);
     }
@@ -119,13 +116,13 @@ if (! function_exists('get_states')) {
     function get_states(string $country = null): array
     {
         $country = $country ?: setting('country', 'India');
-        $locs = locations();
+        $locations = locations();
 
-        if (! isset($locs[$country])) {
+        if (! isset($locations[$country])) {
             return [];
         }
 
-        return $locs[$country]['states'] ?? [];
+        return $locations[$country]['states'] ?? [];
     }
 }
 
@@ -133,15 +130,70 @@ if (! function_exists('get_currency')) {
     function get_currency(string $country = null): array
     {
         $country = $country ?: setting('country', 'India');
-        $locs = locations();
+        $locations = locations();
 
-        if (! isset($locs[$country])) {
-            return ['code' => 'INR', 'symbol' => 'Rs'];
+        if (! isset($locations[$country])) {
+            return [
+                'code' => setting('currency', 'INR'),
+                'symbol' => setting('currency_symbol', 'Rs'),
+            ];
         }
 
         return [
-            'code' => $locs[$country]['currency'] ?? 'INR',
-            'symbol' => $locs[$country]['symbol'] ?? 'Rs',
+            'code' => $locations[$country]['currency'] ?? 'INR',
+            'symbol' => $locations[$country]['symbol'] ?? 'Rs',
         ];
+    }
+}
+
+if (! function_exists('normalize_storage_path')) {
+    function normalize_storage_path(?string $path): ?string
+    {
+        if (! is_string($path)) {
+            return null;
+        }
+
+        $normalized = trim($path);
+        if ($normalized === '') {
+            return null;
+        }
+
+        return ltrim((string) preg_replace('#^/?storage/#', '', $normalized), '/');
+    }
+}
+
+if (! function_exists('storage_public_url')) {
+    function storage_public_url(?string $path): ?string
+    {
+        $normalized = normalize_storage_path($path);
+        if (! $normalized) {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($normalized)) {
+            return null;
+        }
+
+        return Storage::url($normalized);
+    }
+}
+
+if (! function_exists('setting_media_url')) {
+    function setting_media_url(string $primaryKey, ?string $fallbackKey = null): ?string
+    {
+        $primary = setting($primaryKey);
+
+        if (is_string($primary) && $primary !== '') {
+            return storage_public_url($primary);
+        }
+
+        if ($fallbackKey !== null) {
+            $fallback = setting($fallbackKey);
+            if (is_string($fallback) && $fallback !== '') {
+                return storage_public_url($fallback);
+            }
+        }
+
+        return null;
     }
 }

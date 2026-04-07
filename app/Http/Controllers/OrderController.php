@@ -76,11 +76,7 @@ class OrderController extends Controller
         }
 
         $order->load('client', 'items', 'quote');
-
-        $logoPath = public_path('images/logo.png');
-        $logo = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : null;
-
-        $pdf = Pdf::loadView('orders.pdf', compact('order', 'logo'))
+        $pdf = Pdf::loadView('orders.pdf', compact('order'))
             ->setPaper('a4', 'portrait')
             ->setOptions([
                 'dpi' => 150,
@@ -100,10 +96,7 @@ class OrderController extends Controller
         apply_user_mail_config((int) $order->user_id);
 
         $order->load('client', 'items', 'quote');
-        $logoPath = public_path('images/logo.png');
-        $logo = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : null;
-
-        $pdf = Pdf::loadView('orders.pdf', compact('order', 'logo'))
+        $pdf = Pdf::loadView('orders.pdf', compact('order'))
             ->setPaper('a4', 'portrait')
             ->setOptions([
                 'dpi' => 150,
