@@ -146,7 +146,20 @@ class QuoteController extends Controller
             $quote->accepted_at = null;
             $quote->save();
 
-            $pdf = Pdf::loadView('quotes.pdf', compact('quote'));
+            $pdf = Pdf::loadView('quotes.pdf', compact('quote'))
+                ->setPaper([0, 0, 595.28, 841.89], 'portrait')
+                ->setOptions([
+                    'defaultFont' => 'DejaVu Sans',
+                    'isHtml5ParserEnabled' => true,
+                    'isPhpEnabled' => false,
+                    'dpi' => 96,
+                    'defaultPaperWidth' => 210,
+                    'defaultPaperHeight' => 297,
+                    'margin_top' => 0,
+                    'margin_bottom' => 0,
+                    'margin_left' => 0,
+                    'margin_right' => 0,
+                ]);
             $pdfOutput = $pdf->output();
 
             $path = 'quotes/'.$quote->quote_number.'.pdf';
@@ -166,35 +179,31 @@ class QuoteController extends Controller
     {
         $this->ensureOwnership($quote);
 
-        $quote->load('client', 'items');
-
-        $pdf = Pdf::loadView('quotes.pdf', compact('quote'))
-            ->setPaper('a4', 'portrait')
-            ->setOptions([
-                'dpi' => 150,
-                'defaultFont' => 'DejaVu Sans',
-            ]);
-
-        return $pdf->download("{$quote->quote_number}.pdf");
+        return $this->downloadPdf($quote);
     }
 
-    public function downloadPdf(Request $request, Quote $quote)
+    public function downloadPdf(Quote $quote)
     {
         $this->ensureOwnership($quote);
 
         $quote->load('client', 'items');
+
         $pdf = Pdf::loadView('quotes.pdf', compact('quote'))
-            ->setPaper('a4', 'portrait')
+            ->setPaper([0, 0, 595.28, 841.89], 'portrait')
             ->setOptions([
-                'dpi' => 150,
                 'defaultFont' => 'DejaVu Sans',
+                'isHtml5ParserEnabled' => true,
+                'isPhpEnabled' => false,
+                'dpi' => 96,
+                'defaultPaperWidth' => 210,
+                'defaultPaperHeight' => 297,
+                'margin_top' => 0,
+                'margin_bottom' => 0,
+                'margin_left' => 0,
+                'margin_right' => 0,
             ]);
 
-        if ($request->boolean('download')) {
-            return $pdf->download("{$quote->quote_number}.pdf");
-        }
-
-        return $pdf->stream("{$quote->quote_number}.pdf");
+        return $pdf->download('QT-'.$quote->quote_number.'.pdf');
     }
 
     public function convert(Quote $quote)
