@@ -81,10 +81,16 @@ class OrderController extends Controller
 
         $order->load('client', 'items', 'quote');
         $pdf = Pdf::loadView('orders.pdf', compact('order'))
-            ->setPaper('a4', 'portrait')
+            ->setPaper([0, 0, 595.28, 841.89], 'portrait')
             ->setOptions([
-                'dpi' => 150,
-                'defaultFont' => 'DejaVu Sans',
+                'defaultFont'          => 'DejaVu Sans',
+                'isHtml5ParserEnabled' => true,
+                'isPhpEnabled'         => true,
+                'dpi'                  => 96,
+                'margin_top'           => 0,
+                'margin_bottom'        => 0,
+                'margin_left'          => 0,
+                'margin_right'         => 0,
             ]);
 
         if ($request->boolean('download')) {
@@ -106,10 +112,16 @@ class OrderController extends Controller
 
         $order->load('client', 'items', 'quote');
         $pdf = Pdf::loadView('orders.pdf', compact('order'))
-            ->setPaper('a4', 'portrait')
+            ->setPaper([0, 0, 595.28, 841.89], 'portrait')
             ->setOptions([
-                'dpi' => 150,
-                'defaultFont' => 'DejaVu Sans',
+                'defaultFont'          => 'DejaVu Sans',
+                'isHtml5ParserEnabled' => true,
+                'isPhpEnabled'         => true,
+                'dpi'                  => 96,
+                'margin_top'           => 0,
+                'margin_bottom'        => 0,
+                'margin_left'          => 0,
+                'margin_right'         => 0,
             ]);
 
         $path = 'orders/'.$order->order_number.'.pdf';
