@@ -139,7 +139,22 @@
                 <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Invoice</span>
             </div>
 
-            <div class="mt-6 grid gap-4 md:grid-cols-3">
+            <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div>
+                    <label for="company_prefix" class="text-sm font-medium text-slate-700">Company Prefix</label>
+                    <input id="company_prefix" name="company_prefix" type="text" value="{{ old('company_prefix', $settings['company_prefix']) }}" placeholder="KD" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm uppercase focus:border-emerald-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label for="quote_prefix" class="text-sm font-medium text-slate-700">Quote Prefix</label>
+                    <input id="quote_prefix" name="quote_prefix" type="text" value="{{ old('quote_prefix', $settings['quote_prefix']) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm uppercase focus:border-emerald-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label for="order_prefix" class="text-sm font-medium text-slate-700">Order Prefix</label>
+                    <input id="order_prefix" name="order_prefix" type="text" value="{{ old('order_prefix', $settings['order_prefix']) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm uppercase focus:border-emerald-500 focus:outline-none">
+                </div>
+
                 <div>
                     <label for="invoice_prefix" class="text-sm font-medium text-slate-700">Invoice Prefix</label>
                     <input id="invoice_prefix" name="invoice_prefix" type="text" value="{{ old('invoice_prefix', $settings['invoice_prefix']) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm uppercase focus:border-emerald-500 focus:outline-none">

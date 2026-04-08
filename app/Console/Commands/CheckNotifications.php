@@ -57,10 +57,9 @@ class CheckNotifications extends Command
             ->pluck('user_id');
 
         $callLogUsers = InvoiceCallLog::query()
-            ->join('invoices', 'invoice_call_logs.invoice_number', '=', 'invoices.invoice_number')
-            ->whereNotNull('invoices.user_id')
+            ->whereNotNull('user_id')
             ->distinct()
-            ->pluck('invoices.user_id');
+            ->pluck('user_id');
 
         return $invoiceUsers->merge($quoteUsers)->merge($callLogUsers)->unique()->values();
     }

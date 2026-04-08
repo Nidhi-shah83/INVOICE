@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Quote;
 use App\Services\InvoiceService;
+use App\Services\OrderService;
 use App\Services\QuoteService;
 use App\Services\SettingService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -23,6 +24,7 @@ class QuoteController extends Controller
     public function __construct(
         protected QuoteService $quoteService,
         protected InvoiceService $invoiceService,
+        protected OrderService $orderService,
         protected SettingService $settingService,
     ) {
         $this->middleware('auth');
@@ -300,7 +302,7 @@ class QuoteController extends Controller
                 'user_id' => $quote->user_id,
                 'client_id' => $quote->client_id,
                 'quote_id' => $quote->id,
-                'order_number' => $this->nextOrderNumberFromQuote($quote->quote_number),
+                'order_number' => $this->orderService->generateOrderNumber((int) $quote->user_id),
                 'status' => 'pending',
                 'acceptance_token' => (string) Str::uuid(),
                 'total_amount' => (float) ($quote->grand_total ?: $quote->total),
@@ -323,22 +325,5 @@ class QuoteController extends Controller
 
             return $order;
         });
-    }
-
-    protected function nextOrderNumberFromQuote(string $quoteNumber): string
-    {
-        $base = Str::startsWith($quoteNumber, 'QT')
-            ? Str::replaceFirst('QT', 'OR', $quoteNumber)
-            : 'OR-'.$quoteNumber;
-
-        $candidate = $base;
-        $suffix = 1;
-
-        while (Order::where('order_number', $candidate)->exists()) {
-            $candidate = $base.'-'.$suffix;
-            $suffix++;
-        }
-
-        return $candidate;
     }
 }

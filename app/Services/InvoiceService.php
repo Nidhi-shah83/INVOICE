@@ -10,10 +10,10 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Quote;
+use App\Services\Concerns\GeneratesDocumentNumbers;
 use App\Services\RazorpayService;
 use App\Services\SettingService;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -22,6 +22,8 @@ use Illuminate\Support\Str;
 
 class InvoiceService extends ModuleService
 {
+    use GeneratesDocumentNumbers;
+
     public function moduleName(): string
     {
         return 'Invoices';
@@ -30,84 +32,19 @@ class InvoiceService extends ModuleService
     public function __construct(
         protected RazorpayService $razorpayService,
         protected SettingService $settings,
+        protected OrderService $orders,
     ) {
     }
 
     public function generateInvoiceNumber(int $userId): string
     {
-        $year = now()->format('Y');
-        $prefix = (string) $this->settings->get('invoice_prefix', Config::get('invoice.invoice_prefix', 'INV'));
-        $prefix = trim($prefix);
-        $prefix = rtrim($prefix, '-');
-        $fullPrefix = sprintf('%s-%s-', $prefix, $year);
-
-        $sequence = $this->nextInvoiceSequence($fullPrefix);
-
-        return sprintf('%s%03d', $fullPrefix, $sequence);
-    }
-
-    private function nextInvoiceSequence(string $fullPrefix): int
-    {
-        $maxAttempts = 5;
-        $attempts = 0;
-        $indexName = 'invoice_number_sequences_prefix_unique';
-
-        while (true) {
-            try {
-                return DB::transaction(function () use ($fullPrefix) {
-                    $sequenceRow = DB::table('invoice_number_sequences')
-                        ->where('prefix', $fullPrefix)
-                        ->lockForUpdate()
-                        ->first();
-
-                    if ($sequenceRow) {
-                        $next = (int) $sequenceRow->sequence + 1;
-
-                        DB::table('invoice_number_sequences')
-                            ->where('id', $sequenceRow->id)
-                            ->update([
-                                'sequence' => $next,
-                                'updated_at' => now(),
-                            ]);
-
-                        return $next;
-                    }
-
-                    DB::table('invoice_number_sequences')->insert([
-                        'prefix' => $fullPrefix,
-                        'sequence' => 1,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-
-                    return 1;
-                });
-            } catch (UniqueConstraintViolationException $exception) {
-                if (! str_contains($exception->getMessage(), $indexName) || ++$attempts >= $maxAttempts) {
-                    throw $exception;
-                }
-            }
-        }
-    }
-
-    public function generateQuoteNumber(int $userId): string
-    {
-        $year = now()->format('Y');
-        $prefix = sprintf('QT-%s-', $year);
-
-        $lastQuote = Quote::where('user_id', $userId)
-            ->where('quote_number', 'like', $prefix.'%')
-            ->orderByDesc('id')
-            ->first();
-
-        if (! $lastQuote) {
-            $sequence = 1;
-        } else {
-            $sequence = (int) Str::afterLast($lastQuote->quote_number, '-');
-            $sequence++;
-        }
-
-        return sprintf('%s%03d', $prefix, $sequence);
+        return $this->generateDocumentNumber(
+            Invoice::class,
+            'invoice_number',
+            $userId,
+            'invoice_prefix',
+            'INV',
+        );
     }
 
     public function calculateGST(Client $client, float $amount, float $gstPercent): array
@@ -307,7 +244,7 @@ class InvoiceService extends ModuleService
                 'user_id' => $quote->user_id,
                 'client_id' => $quote->client_id,
                 'quote_id' => $quote->id,
-                'order_number' => str_replace('QT', 'OR', $quote->quote_number),
+                'order_number' => $this->orders->generateOrderNumber((int) $quote->user_id),
                 'status' => 'pending',
                 'acceptance_token' => (string) Str::uuid(),
                 'total_amount' => $quote->grand_total,

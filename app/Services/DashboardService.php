@@ -166,7 +166,7 @@ class DashboardService
             'prefixes' => [
                 'invoice' => setting('invoice_prefix', 'INV'),
                 'quote' => setting('quote_prefix', 'QT'),
-                'order' => setting('order_prefix', 'OR'),
+                'order' => setting('order_prefix', 'ORD'),
             ],
             'defaults' => [
                 'due_days' => (int) setting('default_due_days', 15),

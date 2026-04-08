@@ -32,6 +32,9 @@ class SettingController extends Controller
     ];
 
     private const INVOICE_KEYS = [
+        'company_prefix',
+        'quote_prefix',
+        'order_prefix',
         'invoice_prefix',
         'default_due_days',
         'due_days',
@@ -85,6 +88,9 @@ class SettingController extends Controller
             'email' => '',
             'phone' => '',
             'terms_conditions' => '',
+            'company_prefix' => '',
+            'quote_prefix' => 'QT',
+            'order_prefix' => 'ORD',
             'invoice_prefix' => 'INV',
             'default_due_days' => 15,
             'due_days' => 15,
@@ -183,6 +189,9 @@ class SettingController extends Controller
     public function updateInvoice(Request $request): RedirectResponse
     {
         $validated = $request->validate([
+            'company_prefix' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9]*$/'],
+            'quote_prefix' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/'],
+            'order_prefix' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/'],
             'invoice_prefix' => ['required', 'string', 'max:50'],
             'default_due_days' => ['required', 'integer', 'min:0', 'max:365'],
             'default_gst_rate' => ['required', 'numeric', 'min:0', 'max:100'],
@@ -191,7 +200,10 @@ class SettingController extends Controller
         $dueDays = (int) $validated['default_due_days'];
 
         $this->persistSettings([
-            'invoice_prefix' => strtoupper(trim((string) $validated['invoice_prefix'])),
+            'company_prefix' => $this->sanitizePrefix($validated['company_prefix'] ?? null),
+            'quote_prefix' => $this->sanitizePrefix($validated['quote_prefix'] ?? null, 'QT'),
+            'order_prefix' => $this->sanitizePrefix($validated['order_prefix'] ?? null, 'ORD'),
+            'invoice_prefix' => $this->sanitizePrefix($validated['invoice_prefix'] ?? null, 'INV'),
             'default_due_days' => $dueDays,
             'due_days' => $dueDays,
             'default_gst_rate' => (float) $validated['default_gst_rate'],
@@ -313,6 +325,21 @@ class SettingController extends Controller
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function sanitizePrefix(?string $value, ?string $fallback = null): ?string
+    {
+        if ($value === null) {
+            return $fallback !== null ? strtoupper($fallback) : null;
+        }
+
+        $normalized = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', trim($value)));
+
+        if ($normalized !== '') {
+            return $normalized;
+        }
+
+        return $fallback !== null ? strtoupper($fallback) : null;
     }
 
     private function getIndianStates(): array

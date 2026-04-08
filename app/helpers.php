@@ -19,6 +19,13 @@ if (! function_exists('setting')) {
     }
 }
 
+if (! function_exists('getSetting')) {
+    function getSetting($key, $default = null)
+    {
+        return setting((string) $key, $default);
+    }
+}
+
 if (! function_exists('setting_for_user')) {
     function setting_for_user(int $userId, string $key, $default = null)
     {
