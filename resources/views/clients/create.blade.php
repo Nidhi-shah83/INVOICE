@@ -5,7 +5,17 @@
 @section('content')
     <div class="space-y-6">
         <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <form method="POST" action="{{ route('clients.store') }}" class="space-y-6" data-swal data-swal-message="Save this client?">
+            <form
+                method="POST"
+                action="{{ route('clients.store') }}"
+                class="space-y-6"
+                data-swal-confirm
+                data-swal-title="Save this client?"
+                data-swal-text="Please confirm before creating the new client."
+                data-swal-confirm-button="Yes, save"
+                data-swal-cancel-button="Cancel"
+                data-swal-icon="question"
+            >
                 @csrf
 
                 @include('clients.partials.form', ['client' => null])
@@ -19,29 +29,4 @@
             </form>
         </div>
     </div>
-@push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.querySelector('form[data-swal]');
-            if (!form) return;
-            const promptMessage = form.dataset.swalMessage || 'Are you sure?';
-
-            form.addEventListener('submit', (event) => {
-                event.preventDefault();
-                Swal.fire({
-                    title: 'Confirm',
-                    text: promptMessage,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, save',
-                }).then(result => {
-                    if (result.isConfirmed) {
-                        form.submit();
-                    }
-                });
-            });
-        });
-    </script>
-@endpush
 @endsection

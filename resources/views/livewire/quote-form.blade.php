@@ -1,5 +1,14 @@
-<div class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8">
-<form wire:submit.prevent="saveDraft" class="space-y-6 js-quote-draft-form">
+<div class="mx-auto max-w-7xl space-y-6 px-6 py-6 overflow-visible">
+@php
+    $fieldClass = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white';
+    $selectClass = $fieldClass.' pr-10';
+    $cardClass = 'rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900';
+    $sectionTitleClass = 'text-sm font-semibold text-slate-900 dark:text-slate-100';
+    $sectionDescClass = 'text-xs text-slate-500 dark:text-slate-400';
+    $primaryButtonClass = 'inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200';
+    $secondaryButtonClass = 'inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800';
+@endphp
+<form wire:submit.prevent="saveDraft" class="space-y-6 overflow-visible">
     <div class="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
         <div>
             <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Quote Number</p>
@@ -17,7 +26,7 @@
             <select
                 id="client"
                 wire:model="client_id"
-                class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                class="mt-1 {{ $selectClass }}"
             >
                 <option value="">Select client</option>
                 @foreach($clients as $client)
@@ -33,7 +42,7 @@
                 wire:model="issue_date"
                 type="date"
                 id="issue_date"
-                class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                class="mt-1 {{ $fieldClass }}"
             >
             @error('issue_date') <p class="text-xs text-rose-500 mt-1">{{ $message }}</p> @enderror
         </div>
@@ -44,7 +53,7 @@
                 wire:model="validity_date"
                 type="date"
                 id="validity_date"
-                class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                class="mt-1 {{ $fieldClass }}"
             >
             @error('validity_date') <p class="text-xs text-rose-500 mt-1">{{ $message }}</p> @enderror
         </div>
@@ -86,22 +95,25 @@
         </div>
     </div>
 
-        <div class="rounded-3xl border border-slate-200 bg-white shadow-sm mb-8">
+        <div class="{{ $cardClass }} mb-8">
     
             <!-- Header -->
             <div class="flex items-center justify-between px-6 pt-5 pb-4">
-                <h3 class="text-sm font-semibold text-slate-700">Items</h3>
+                <div>
+                    <h3 class="{{ $sectionTitleClass }}">Items</h3>
+                    <p class="{{ $sectionDescClass }}">Add one or more line items for this quote.</p>
+                </div>
                 <button
                     type="button"
                     wire:click="addItem"
-                    class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs uppercase tracking-[0.3em] text-slate-700 hover:border-slate-300 transition"
+                    class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                     + Add item
                 </button>
             </div>
 
             <!-- Table -->
-            <div class="overflow-x-auto px-6 pb-5">
+            <div class="overflow-x-auto hide-scrollbar px-6 pb-5">
                 <table class="min-w-full divide-y divide-slate-200 text-sm" data-quote-items-table>
                     <thead class="bg-slate-900 text-white">
                         <tr>
@@ -122,7 +134,7 @@
                                         id="item-{{ $index }}-name"
                                         data-quote-item-name
                                         wire:model="items.{{ $index }}.name"
-                                        class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                        class="{{ $fieldClass }}"
                                     >
                                         <option value="">Item</option>
                                         @foreach ($products as $product)
@@ -135,21 +147,21 @@
                                     <input type="number"
                                         wire:model="items.{{ $index }}.qty"
                                         data-qty-input
-                                        class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm">
+                                        class="{{ $fieldClass }}">
                                 </td>
 
                                 <td class="px-4 py-3">
                                     <input type="number"
                                         wire:model="items.{{ $index }}.rate"
                                         data-rate-input
-                                        class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm">
+                                        class="{{ $fieldClass }}">
                                 </td>
 
                                 <td class="px-4 py-3">
                                     <input type="number"
                                         wire:model="items.{{ $index }}.discount_percent"
                                         data-discount-input
-                                        class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm">
+                                        class="{{ $fieldClass }}">
                                     <input type="hidden"
                                         wire:model="items.{{ $index }}.gst_percent"
                                         data-gst-input
@@ -180,7 +192,7 @@
         </div>
 
         <!-- Bottom Section -->
-        <div class="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm mb-8">
+        <div class="{{ $cardClass }} px-6 py-5 mb-8">
             <div class="grid gap-6 lg:grid-cols-[1.2fr,0.9fr]">
 
                 <!-- Notes -->
@@ -190,12 +202,12 @@
                         id="notes"
                         wire:model.defer="notes"
                         rows="4"
-                        class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        class="{{ $fieldClass }} min-h-[120px]"
                     ></textarea>
                 </section>
 
                 <!-- Summary -->
-                <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5"
+                <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
                     data-quote-summary
                     data-business-state="{{ setting('state', '') }}"
                 >
@@ -257,16 +269,34 @@
             </div>
         </div>
 
-        <div class="flex flex-wrap gap-3">
-        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-slate-800 transition js-quote-save-draft">
-            Save as Draft
+        <div class="flex flex-wrap items-center gap-3">
+        <button
+            type="button"
+            wire:click="saveDraft"
+            wire:loading.attr="disabled"
+            wire:target="saveDraft"
+            class="{{ $secondaryButtonClass }}"
+        >
+            <svg wire:loading wire:target="saveDraft" class="h-4 w-4 animate-spin text-current" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span wire:loading.remove wire:target="saveDraft">Save as Draft</span>
+            <span wire:loading wire:target="saveDraft">Saving...</span>
         </button>
         <button
             type="button"
-            wire:click.prevent="sendNow"
-            class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-600 transition js-quote-send-now"
+            wire:click="sendNow"
+            wire:loading.attr="disabled"
+            wire:target="sendNow"
+            class="{{ $primaryButtonClass }}"
         >
-            Send Now
+            <svg wire:loading wire:target="sendNow" class="h-4 w-4 animate-spin text-current" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span wire:loading.remove wire:target="sendNow">Send Now</span>
+            <span wire:loading wire:target="sendNow">Sending...</span>
         </button>
     </div>
 
@@ -457,9 +487,9 @@
                 updateSummaryField('igst', igst);
                 updateSummaryField('grand', subtotal + totalGst);
                 if (summaryCard) {
-                const cgstRow = summaryCard.querySelector('[data-summary-row="cgst"]');
-                const sgstRow = summaryCard.querySelector('[data-summary-row="sgst"]');
-                const igstRow = summaryCard.querySelector('[data-summary-row="igst"]');
+                    const cgstRow = summaryCard.querySelector('[data-summary-row="cgst"]');
+                    const sgstRow = summaryCard.querySelector('[data-summary-row="sgst"]');
+                    const igstRow = summaryCard.querySelector('[data-summary-row="igst"]');
                     if (cgstRow) {
                         cgstRow.dataset.totalValue = cgst.toFixed(2);
                     }
@@ -513,46 +543,7 @@
                 }
             });
             recalcTotals();
-            recalcTotals();
-        });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const draftForm = document.querySelector('.js-quote-draft-form');
-            draftForm?.addEventListener('submit', (event) => {
-                event.preventDefault();
-                Swal.fire({
-                    title: 'Save draft?',
-                    text: 'The current quote data will be saved as a draft.',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Save draft',
-                    cancelButtonText: 'Cancel',
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.Livewire?.emit('saveDraft');
-                    }
-                });
-            });
-
-            const sendButton = document.querySelector('.js-quote-send-now');
-            sendButton?.addEventListener('click', (event) => {
-                event.preventDefault();
-                Swal.fire({
-                    title: 'Send quote?',
-                    text: 'Send this quote to the selected client now?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Send now',
-                    cancelButtonText: 'Cancel',
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.Livewire?.emit('sendNow');
-                    }
-                });
-            });
         });
     </script>
 </form>
 </div>
-

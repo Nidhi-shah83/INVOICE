@@ -130,9 +130,21 @@ class SettingController extends Controller
         $settings['currency_symbol'] = 'Rs';
         $settings['mail_password'] = '';
 
+        $completionFields = [
+            $settings['business_name'] ?? null,
+            $settings['gstin'] ?? null,
+            $settings['email'] ?? null,
+            $settings['phone'] ?? null,
+            $settings['address'] ?? null,
+        ];
+
+        $filled = collect($completionFields)->filter(fn ($value) => filled($value))->count();
+        $completion = (int) floor(($filled / count($completionFields)) * 100);
+
         return view('settings.index', [
             'settings' => $settings,
             'states' => $states,
+            'completion' => $completion,
             'logoUrl' => setting_media_url('logo', 'business_logo'),
             'faviconUrl' => setting_media_url('favicon'),
         ]);
@@ -183,7 +195,13 @@ class SettingController extends Controller
             'terms_conditions' => $this->nullIfEmpty($validated['terms_conditions'] ?? null),
         ]);
 
-        return to_route('settings.index')->with('status', 'Business profile saved successfully.');
+        return to_route('settings.index')->with('sweetalert', [
+            'icon' => 'success',
+            'title' => 'Saved!',
+            'text' => 'Business profile updated successfully.',
+            'timer' => 2000,
+            'showConfirmButton' => false,
+        ]);
     }
 
     public function updateInvoice(Request $request): RedirectResponse
@@ -209,7 +227,13 @@ class SettingController extends Controller
             'default_gst_rate' => (float) $validated['default_gst_rate'],
         ]);
 
-        return to_route('settings.index')->with('status', 'Invoice settings saved successfully.');
+        return to_route('settings.index')->with('sweetalert', [
+            'icon' => 'success',
+            'title' => 'Saved!',
+            'text' => 'Invoice settings updated successfully.',
+            'timer' => 2000,
+            'showConfirmButton' => false,
+        ]);
     }
 
     public function updateEmail(Request $request): RedirectResponse
@@ -273,10 +297,22 @@ class SettingController extends Controller
                     ->withErrors(['test_email_recipient' => 'Unable to send test email: '.$exception->getMessage()]);
             }
 
-            return to_route('settings.index')->with('status', 'Email settings saved and test email sent.');
+            return to_route('settings.index')->with('sweetalert', [
+                'icon' => 'success',
+                'title' => 'Saved!',
+                'text' => 'Email settings updated successfully and a test email was sent.',
+                'timer' => 2000,
+                'showConfirmButton' => false,
+            ]);
         }
 
-        return to_route('settings.index')->with('status', 'Email settings saved successfully.');
+        return to_route('settings.index')->with('sweetalert', [
+            'icon' => 'success',
+            'title' => 'Saved!',
+            'text' => 'Email settings updated successfully.',
+            'timer' => 2000,
+            'showConfirmButton' => false,
+        ]);
     }
 
     public function updatePayment(Request $request): RedirectResponse
@@ -295,7 +331,13 @@ class SettingController extends Controller
             'upi_id' => $this->nullIfEmpty($validated['upi_id'] ?? null),
         ]);
 
-        return to_route('settings.index')->with('status', 'Payment settings saved successfully.');
+        return to_route('settings.index')->with('sweetalert', [
+            'icon' => 'success',
+            'title' => 'Saved!',
+            'text' => 'Payment settings updated successfully.',
+            'timer' => 2000,
+            'showConfirmButton' => false,
+        ]);
     }
 
     private function persistSettings(array $values): void

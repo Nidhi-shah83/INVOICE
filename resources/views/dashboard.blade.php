@@ -97,6 +97,10 @@
         </div>
     </div>
 
+    @php
+        $revenueTrend = $revenue_trend ?? ['labels' => [], 'values' => []];
+    @endphp
+
     <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-900/5  ">
         <div class="flex flex-col items-center gap-2 text-center md:flex-row md:items-end md:justify-between">
             <div>
@@ -110,7 +114,7 @@
         <div class="mt-6 h-64 w-full">
             <canvas id="monthlyRevenueChart" class="h-full w-full"></canvas>
         </div>
-        <p class="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">12-month sample data keeps the curve responsive and balanced.</p>
+        <p class="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">Revenue is grouped by month for your current year.</p>
     </div>
 
     {{-- OVERDUE ALERT BANNER --}}
@@ -412,14 +416,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = document.getElementById('monthlyRevenueChart');
     if (!ctx) return;
 
+    const revenueTrend = @json($revenueTrend);
+    const labels = revenueTrend.labels || [];
+    const values = revenueTrend.values || [];
+
+    if (!labels.length || !values.length) {
+        return;
+    }
+
+    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 260);
+    gradient.addColorStop(0, 'rgba(37, 99, 235, 0.35)');
+    gradient.addColorStop(1, 'rgba(37, 99, 235, 0.03)');
+
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            labels,
             datasets: [{
                 label: 'Monthly Revenue',
-                data: [21000, 24500, 23000, 27500, 31000, 33000, 36000, 38000, 42000, 45000, 47000, 52000],
-                fill: false,
+                data: values,
+                fill: true,
+                backgroundColor: gradient,
+                borderColor: '#2563eb',
+                borderWidth: 2,
+                pointBackgroundColor: '#2563eb',
+                pointBorderColor: '#ffffff',
+                pointRadius: 3,
+                pointHoverRadius: 5,
                 tension: 0.4,
             }],
         },
@@ -428,14 +451,23 @@ document.addEventListener('DOMContentLoaded', () => {
             maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => '\u20B9' + Number(context.parsed.y || 0).toLocaleString('en-IN', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                        }),
+                    },
+                },
             },
             scales: {
                 x: {
                     grid: { display: false },
                 },
                 y: {
+                    beginAtZero: true,
                     ticks: {
-                        callback: (value) => '₹' + value.toLocaleString('en-IN'),
+                        callback: (value) => '\u20B9' + Number(value).toLocaleString('en-IN'),
                     },
                     grid: { color: '#e2e8f0' },
                 },

@@ -54,7 +54,16 @@
                                         >
                                             Edit
                                         </a>
-                                        <form method="POST" action="{{ route('products.destroy', $product) }}">
+                                        <form
+                                            method="POST"
+                                            action="{{ route('products.destroy', $product) }}"
+                                            data-swal-confirm
+                                            data-swal-title="Remove {{ $product->name }}?"
+                                            data-swal-text="This item will be deleted from your catalog."
+                                            data-swal-confirm-button="Remove item"
+                                            data-swal-cancel-button="Cancel"
+                                            data-swal-icon="warning"
+                                        >
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-rose-600 transition hover:border-rose-300 hover:text-rose-400">
