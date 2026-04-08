@@ -97,9 +97,14 @@ class PaymentController extends Controller
         ], fn ($value) => is_string($value) && trim($value) !== '');
 
         foreach ($invoiceNumberCandidates as $invoiceNumber) {
-            $invoice = Invoice::where('invoice_number', trim((string) $invoiceNumber))->first();
-            if ($invoice) {
-                return $invoice;
+            $matches = Invoice::withoutGlobalScopes()
+                ->where('invoice_number', trim((string) $invoiceNumber))
+                ->orderByDesc('id')
+                ->limit(2)
+                ->get();
+
+            if ($matches->count() === 1) {
+                return $matches->first();
             }
         }
 

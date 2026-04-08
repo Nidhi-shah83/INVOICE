@@ -76,7 +76,16 @@
                                         </span>
                                     </div>
                                     <div class="relative group inline-flex">
-                                        <form method="POST" action="{{ route('clients.destroy', $client) }}" onsubmit="return confirm('Discard this client?');">
+                                        <form
+                                            method="POST"
+                                            action="{{ route('clients.destroy', $client) }}"
+                                            data-swal-confirm
+                                            data-swal-title="Discard {{ $client->name }}?"
+                                            data-swal-text="This will permanently remove the client."
+                                            data-swal-confirm-button="Delete client"
+                                            data-swal-cancel-button="Cancel"
+                                            data-swal-icon="warning"
+                                        >
                                             @csrf
                                             @method('DELETE')
                                             <button

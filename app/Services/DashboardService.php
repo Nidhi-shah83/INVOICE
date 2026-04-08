@@ -32,10 +32,13 @@ class DashboardService
             ->selectRaw('COALESCE(SUM(payments.amount), 0) as total_revenue')
             ->value('total_revenue');
 
+        $revenueTrend = $this->monthlyRevenueTrend((int) $user->id);
+
         return [
             'total_revenue' => $totalRevenue,
             'unpaid_amount' => (float) ($invoiceMetrics?->unpaid_amount ?? 0),
             'overdue_amount' => (float) ($invoiceMetrics?->overdue_amount ?? 0),
+            'revenue_trend' => $revenueTrend,
             'active_orders' => $this->getActiveOrdersCount((int) $user->id),
             'recent_invoices' => $this->getRecentInvoices((int) $user->id),
             'top_clients' => $this->getTopClients((int) $user->id),
@@ -166,11 +169,50 @@ class DashboardService
             'prefixes' => [
                 'invoice' => setting('invoice_prefix', 'INV'),
                 'quote' => setting('quote_prefix', 'QT'),
-                'order' => setting('order_prefix', 'OR'),
+                'order' => setting('order_prefix', 'ORD'),
             ],
             'defaults' => [
                 'due_days' => (int) setting('default_due_days', 15),
             ],
+        ];
+    }
+
+    private function monthlyRevenueTrend(int $userId): array
+    {
+        $yearStart = now()->startOfYear();
+        $yearEnd = now()->endOfYear();
+        $year = (int) $yearStart->year;
+        $labels = collect(range(1, 12))
+            ->map(fn (int $month) => Carbon::createFromDate($year, $month, 1)->format('M'))
+            ->all();
+
+        $query = Invoice::query()
+            ->where('user_id', $userId)
+            ->whereBetween('created_at', [$yearStart, $yearEnd]);
+
+        $driver = $query->getConnection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            $monthlyTotals = $query
+                ->selectRaw("CAST(strftime('%m', created_at) AS INTEGER) as month")
+                ->selectRaw('COALESCE(SUM(grand_total), 0) as total')
+                ->groupBy('month')
+                ->pluck('total', 'month');
+        } else {
+            $monthlyTotals = $query
+                ->selectRaw('MONTH(created_at) as month')
+                ->selectRaw('COALESCE(SUM(grand_total), 0) as total')
+                ->groupBy('month')
+                ->pluck('total', 'month');
+        }
+
+        $values = collect(range(1, 12))
+            ->map(fn (int $month) => (float) ($monthlyTotals[$month] ?? 0))
+            ->all();
+
+        return [
+            'labels' => $labels,
+            'values' => $values,
         ];
     }
 }

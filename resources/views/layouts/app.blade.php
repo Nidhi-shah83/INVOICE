@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
@@ -77,15 +77,15 @@
                 <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-1 text-sm sidebar-scrollbar" aria-label="Main">
                     @php
                         $navItems = [
-                            ['label' => 'Dashboard', 'route' => 'dashboard', 'pattern' => 'dashboard'],
-                            ['label' => 'Quotes', 'route' => 'quotes.index', 'pattern' => 'quotes.*'],
-                            ['label' => 'Orders', 'route' => 'orders.index', 'pattern' => 'orders.*'],
-                            ['label' => 'Invoices', 'route' => 'invoices.index', 'pattern' => 'invoices.*'],
-                            ['label' => 'Clients', 'route' => 'clients.index', 'pattern' => 'clients.*'],
-                            ['label' => 'Items', 'route' => 'products.index', 'pattern' => 'products.*'],
-                            ['label' => 'AI Assistant', 'route' => 'ai-assistant.index', 'pattern' => 'ai-assistant.*'],
-                            ['label' => 'Reports', 'route' => 'reports.index', 'pattern' => 'reports.*'],
-                            ['label' => 'Settings', 'route' => 'settings.index', 'pattern' => 'settings.*'],
+                            ['label' => 'Dashboard', 'route' => 'dashboard', 'pattern' => 'dashboard', 'icon' => 'home'],
+                            ['label' => 'Quotes', 'route' => 'quotes.index', 'pattern' => 'quotes.*', 'icon' => 'quote'],
+                            ['label' => 'Orders', 'route' => 'orders.index', 'pattern' => 'orders.*', 'icon' => 'order'],
+                            ['label' => 'Invoices', 'route' => 'invoices.index', 'pattern' => 'invoices.*', 'icon' => 'invoice'],
+                            ['label' => 'Clients', 'route' => 'clients.index', 'pattern' => 'clients.*', 'icon' => 'clients'],
+                            ['label' => 'Items', 'route' => 'products.index', 'pattern' => 'products.*', 'icon' => 'items'],
+                            ['label' => 'AI Assistant', 'route' => 'ai-assistant.index', 'pattern' => 'ai-assistant.*', 'icon' => 'ai'],
+                            ['label' => 'Reports', 'route' => 'reports.index', 'pattern' => 'reports.*', 'icon' => 'reports'],
+                            ['label' => 'Settings', 'route' => 'settings.index', 'pattern' => 'settings.*', 'icon' => 'settings'],
                         ];
                     @endphp
 
@@ -94,7 +94,62 @@
                             href="{{ route($item['route']) }}"
                             class="flex items-center gap-3 px-4 py-3 rounded-xl transition hover:bg-white/10 {{ request()->routeIs($item['pattern']) ? 'bg-white/10' : '' }}"
                         >
-                            <span class="text-base">&bull;</span>
+                            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white/90">
+                                @switch($item['icon'])
+                                    @case('home')
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m3 11 9-8 9 8" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 10v10h14V10" />
+                                        </svg>
+                                        @break
+                                    @case('quote')
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 12h10M7 17h6" />
+                                        </svg>
+                                        @break
+                                    @case('order')
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10l3 4-8 8-8-8 3-4z" />
+                                        </svg>
+                                        @break
+                                    @case('invoice')
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 4h10v16l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5V4z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6M9 12h6M9 16h4" />
+                                        </svg>
+                                        @break
+                                    @case('clients')
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20a5 5 0 00-10 0" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 12a4 4 0 100-8 4 4 0 000 8z" />
+                                        </svg>
+                                        @break
+                                    @case('items')
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7l9-4 9 4-9 4-9-4z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10l9 4 9-4V7" />
+                                        </svg>
+                                        @break
+                                    @case('ai')
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l1.6 4.8L18 9.4l-4.4 1.6L12 16l-1.6-4.8L6 9.4l4.4-1.6L12 3z" />
+                                        </svg>
+                                        @break
+                                    @case('reports')
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 19V5" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 19h16" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16v-4M12 16V8m4 8v-6" />
+                                        </svg>
+                                        @break
+                                    @case('settings')
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 01-1.42 3.42h-.08a1.7 1.7 0 00-1.6 1.1 1.7 1.7 0 00-.06.46 2 2 0 01-4 0 1.7 1.7 0 00-1.1-1.6 1.7 1.7 0 00-.46-.06 1.7 1.7 0 00-1.6 1.1 1.7 1.7 0 00-.06.46 2 2 0 01-4 0 1.7 1.7 0 00-1.1-1.6 1.7 1.7 0 00-.46-.06 2 2 0 01-1.42-3.42l.06-.06A1.7 1.7 0 005 15a1.7 1.7 0 00-1.1-1.6 1.7 1.7 0 00-.46-.06 2 2 0 010-4 1.7 1.7 0 001.6-1.1 1.7 1.7 0 00.06-.46 2 2 0 014 0 1.7 1.7 0 001.1 1.6 1.7 1.7 0 00.46.06 1.7 1.7 0 001.6-1.1 1.7 1.7 0 00.06-.46 2 2 0 014 0 1.7 1.7 0 001.1 1.6 1.7 1.7 0 00.46.06 2 2 0 011.42 3.42l-.06.06A1.7 1.7 0 0019.4 15z" />
+                                        </svg>
+                                        @break
+                                @endswitch
+                            </span>
                             <span class="text-sm font-medium">{{ $item['label'] }}</span>
                         </a>
                     @endforeach
@@ -391,7 +446,7 @@
                     return;
                 }
 
-                Swal.fire({
+                window.swalFire({
                     icon,
                     title,
                     text,
@@ -438,11 +493,11 @@
 
         @if ($validationErrors)
             <script>
-                Swal.fire({
+                window.dispatchSwal({
                     icon: 'error',
                     title: 'Validation failed',
                     html: @json($validationList),
-                    confirmButtonText: 'Fix it'
+                    confirmButtonText: 'Fix it',
                 });
             </script>
         @elseif ($alertMessage)

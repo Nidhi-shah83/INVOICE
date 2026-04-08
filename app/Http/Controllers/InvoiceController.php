@@ -183,7 +183,14 @@ class InvoiceController extends Controller
         $data = $request->validate([
             'vendor_name' => ['required', 'string', 'max:255'],
             'gstin' => ['nullable', 'string', 'max:15'],
-            'invoice_number' => ['nullable', 'string', 'max:255', Rule::unique('invoices', 'invoice_number')],
+            'invoice_number' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('invoices', 'invoice_number')->where(
+                    fn ($query) => $query->where('user_id', (int) $request->user()->id)
+                ),
+            ],
             'date' => ['required', 'date'],
             'total_amount' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string'],

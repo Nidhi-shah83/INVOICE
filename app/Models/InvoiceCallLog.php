@@ -35,9 +35,14 @@ class InvoiceCallLog extends Model
                 return;
             }
 
-            $userId = Invoice::withoutGlobalScopes()
-                ->where('invoice_number', $callLog->invoice_number)
-                ->value('user_id');
+            $invoiceQuery = Invoice::withoutGlobalScopes()
+                ->where('invoice_number', $callLog->invoice_number);
+
+            if (auth()->check()) {
+                $invoiceQuery->where('user_id', (int) auth()->id());
+            }
+
+            $userId = $invoiceQuery->value('user_id');
 
             if ($userId) {
                 $callLog->user_id = (int) $userId;
@@ -47,6 +52,7 @@ class InvoiceCallLog extends Model
 
     public function invoice()
     {
-        return $this->belongsTo(Invoice::class, 'invoice_number', 'invoice_number');
+        return $this->belongsTo(Invoice::class, 'invoice_number', 'invoice_number')
+            ->whereColumn('invoices.user_id', 'invoice_call_logs.user_id');
     }
 }

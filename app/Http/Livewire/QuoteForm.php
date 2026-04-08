@@ -7,9 +7,12 @@ use App\Models\Product;
 use App\Models\Quote;
 use App\Services\InvoiceService;
 use App\Services\QuoteService;
+use Illuminate\Support\Arr;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 use Livewire\Component;
 
 class QuoteForm extends Component
@@ -123,16 +126,70 @@ class QuoteForm extends Component
 
     public function saveDraft(): void
     {
-        $quote = $this->saveQuote('draft');
+        try {
+            $quote = $this->saveQuote('draft', true);
 
-        session()->flash('status', 'Quote saved as draft.');
+            session()->flash('status', 'Draft saved successfully.');
+
+            $this->dispatch('swal',
+                icon: 'success',
+                title: 'Draft saved',
+                text: 'Your quote draft has been saved.'
+            );
+        } catch (ValidationException $e) {
+            $this->dispatch('swal',
+                icon: 'error',
+                title: 'Missing fields',
+                text: Arr::first(Arr::flatten($e->errors()), default: 'Please fix the highlighted fields.')
+            );
+
+            throw $e;
+        } catch (Throwable $e) {
+            report($e);
+
+            $this->dispatch('swal',
+                icon: 'error',
+                title: 'Save failed',
+                text: 'We could not save the draft. Please try again.'
+            );
+
+            throw $e;
+        }
     }
 
     public function sendNow(): void
     {
-        $quote = $this->saveQuote('sent');
+        try {
+            $quote = $this->saveQuote('sent');
 
-        $this->redirectRoute('quotes.show', $quote);
+            session()->flash('status', 'Quote sent successfully.');
+
+            $this->dispatch('swal',
+                icon: 'success',
+                title: 'Quote sent',
+                text: 'The quote was sent successfully.'
+            );
+
+            $this->redirectRoute('quotes.show', $quote);
+        } catch (ValidationException $e) {
+            $this->dispatch('swal',
+                icon: 'error',
+                title: 'Missing fields',
+                text: Arr::first(Arr::flatten($e->errors()), default: 'Please fix the highlighted fields.')
+            );
+
+            throw $e;
+        } catch (Throwable $e) {
+            report($e);
+
+            $this->dispatch('swal',
+                icon: 'error',
+                title: 'Send failed',
+                text: 'We could not send the quote. Please try again.'
+            );
+
+            throw $e;
+        }
     }
 
     public function getTotalsProperty(): array
@@ -192,11 +249,16 @@ class QuoteForm extends Component
         ];
     }
 
-    protected function saveQuote(string $status): Quote
+    protected function saveQuote(string $status, bool $draft = false): Quote
     {
         $this->sanitizeItems();
 
-        $this->validate();
+        if ($draft) {
+            $this->applyDraftDefaults();
+            $this->validate($this->draftRules());
+        } else {
+            $this->validate();
+        }
 
         $payload = [
             'user_id' => auth()->id(),
@@ -222,6 +284,31 @@ class QuoteForm extends Component
         $this->selectedClient = $this->loadClient($quote->client_id);
 
         return $quote;
+    }
+
+    protected function draftRules(): array
+    {
+        return [
+            'client_id' => [
+                'required',
+                Rule::exists('clients', 'id')->where(fn ($query) => $query->where('user_id', auth()->id())),
+            ],
+            'items' => ['required', 'array', 'min:1'],
+        ];
+    }
+
+    protected function applyDraftDefaults(): void
+    {
+        $this->issue_date = $this->issue_date ?: now()->format('Y-m-d');
+        $this->validity_date = $this->validity_date ?: now()->addWeek()->format('Y-m-d');
+        $this->discount_type = $this->discount_type ?: 'flat';
+        $this->currency = $this->currency ?: setting('currency', 'INR');
+        $this->payment_terms = $this->payment_terms ?: setting('quote_payment_terms', 'Payment due within 15 days of acceptance');
+        $this->round_off = (float) ($this->round_off ?? 0);
+
+        if (empty($this->items)) {
+            $this->items = [$this->blankItem()];
+        }
     }
 
     protected function sanitizeItems(): void
@@ -297,4 +384,3 @@ class QuoteForm extends Component
         return Client::find($clientId);
     }
 }
-

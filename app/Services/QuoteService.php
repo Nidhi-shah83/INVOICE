@@ -4,18 +4,27 @@ namespace App\Services;
 
 use App\Models\Client;
 use App\Models\Quote;
+use App\Services\Concerns\GeneratesDocumentNumbers;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class QuoteService
 {
+    use GeneratesDocumentNumbers;
+
     public function __construct(protected InvoiceService $invoiceService)
     {
     }
 
     public function generateQuoteNumber(int $userId): string
     {
-        return $this->invoiceService->generateQuoteNumber($userId);
+        return $this->generateDocumentNumber(
+            Quote::class,
+            'quote_number',
+            $userId,
+            'quote_prefix',
+            'QT',
+        );
     }
 
     public function persist(array $data, ?Quote $quote = null): Quote
@@ -34,7 +43,7 @@ class QuoteService
             array_key_exists('round_off', $data) ? (float) $data['round_off'] : null,
         );
 
-        $quoteNumber = $quote->quote_number ?: $this->invoiceService->generateQuoteNumber($userId);
+        $quoteNumber = $quote->quote_number ?: $this->generateQuoteNumber($userId);
         $quote->fill([
             'user_id' => $userId,
             'client_id' => $client->id,

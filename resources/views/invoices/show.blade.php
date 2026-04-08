@@ -315,16 +315,25 @@
                         return;
                     }
 
-                    const result = await Swal.fire({
-                        title: 'Mark invoice as paid?',
-                        text: `This will apply the remaining ${this.formatCurrency(this.amountDue)}.`,
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Yes, mark as paid',
-                        cancelButtonText: 'Cancel',
-                    });
+                    const result = window.confirmSwal
+                        ? await window.confirmSwal({
+                            title: 'Mark invoice as paid?',
+                            text: `This will apply the remaining ${this.formatCurrency(this.amountDue)}.`,
+                            icon: 'question',
+                            confirmButtonText: 'Yes, mark as paid',
+                            cancelButtonText: 'Cancel',
+                            confirmButtonColor: '#10b981',
+                        })
+                        : await Swal.fire({
+                            title: 'Mark invoice as paid?',
+                            text: `This will apply the remaining ${this.formatCurrency(this.amountDue)}.`,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yes, mark as paid',
+                            cancelButtonText: 'Cancel',
+                        }).then((result) => result.isConfirmed);
 
-                    if (!result.isConfirmed) {
+                    if (!result) {
                         return;
                     }
 
@@ -350,16 +359,25 @@
                         return;
                     }
 
-                    const confirmation = await Swal.fire({
-                        title: 'Record payment?',
-                        text: `Apply ${this.formatCurrency(amount)} to Invoice ${this.invoiceNumber}?`,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Record payment',
-                        cancelButtonText: 'Cancel',
-                    });
+                    const confirmation = window.confirmSwal
+                        ? await window.confirmSwal({
+                            title: 'Record payment?',
+                            text: `Apply ${this.formatCurrency(amount)} to Invoice ${this.invoiceNumber}?`,
+                            icon: 'warning',
+                            confirmButtonText: 'Record payment',
+                            cancelButtonText: 'Cancel',
+                            confirmButtonColor: '#10b981',
+                        })
+                        : await Swal.fire({
+                            title: 'Record payment?',
+                            text: `Apply ${this.formatCurrency(amount)} to Invoice ${this.invoiceNumber}?`,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Record payment',
+                            cancelButtonText: 'Cancel',
+                        }).then((result) => result.isConfirmed);
 
-                    if (!confirmation.isConfirmed) {
+                    if (!confirmation) {
                         return;
                     }
 
@@ -443,18 +461,21 @@
             sendForms.forEach((form) => {
                 form.addEventListener('submit', function (event) {
                     event.preventDefault();
+                    if (!window.confirmSwal) {
+                        form.submit();
+                        return;
+                    }
                     const invoiceNumber = form.dataset.invoiceNumber || 'invoice';
                     const clientName = form.dataset.clientName || 'client';
-                    Swal.fire({
+                    window.confirmSwal({
                         title: `Send ${invoiceNumber}?`,
                         text: `Email ${invoiceNumber} to ${clientName}?`,
                         icon: 'question',
-                        showCancelButton: true,
                         confirmButtonText: 'Send invoice',
                         cancelButtonText: 'Cancel',
-                        reverseButtons: true,
-                    }).then((result) => {
-                        if (result.isConfirmed) {
+                        confirmButtonColor: '#10b981',
+                    }).then((confirmed) => {
+                        if (confirmed) {
                             form.submit();
                         }
                     });
@@ -465,16 +486,20 @@
             downloadLinks.forEach((link) => {
                 link.addEventListener('click', function (event) {
                     event.preventDefault();
+                    if (!window.confirmSwal) {
+                        window.location.href = link.href;
+                        return;
+                    }
                     const invoiceNumber = link.dataset.invoiceNumber || 'invoice';
-                    Swal.fire({
+                    window.confirmSwal({
                         title: `Download ${invoiceNumber}?`,
                         text: 'The PDF will download immediately after you confirm.',
                         icon: 'info',
-                        showCancelButton: true,
                         confirmButtonText: 'Download',
                         cancelButtonText: 'Cancel',
-                    }).then((result) => {
-                        if (result.isConfirmed) {
+                        confirmButtonColor: '#111827',
+                    }).then((confirmed) => {
+                        if (confirmed) {
                             window.location.href = link.href;
                         }
                     });

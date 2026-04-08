@@ -8,7 +8,6 @@
             method="POST"
             action="{{ route('orders.sendPdf', $order) }}"
             class="send-pdf-form"
-            data-order-number="{{ $order->order_number }}"
         >
             @csrf
             <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800 transition">
@@ -18,7 +17,6 @@
         <a
             href="{{ route('orders.pdf', $order) }}?download=1"
             class="inline-flex items-center gap-2 rounded-full border border-slate-900 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-900 hover:text-white transition download-pdf-link"
-            data-order-number="{{ $order->order_number }}"
         >
             Download PDF
         </a>
@@ -110,10 +108,6 @@
                         action="{{ route('orders.createInvoice', $order) }}"
                         id="convert-all-swal-form"
                         class="hidden"
-                        data-order-id="{{ $order->id }}"
-                        data-quote-number="{{ e($order->quote?->quote_number ?? 'N/A') }}"
-                        data-client-name="{{ e($order->client->name) }}"
-                        data-remaining-amount="{{ number_format($order->remaining_amount, 2, '.', '') }}"
                     >
                         @csrf
                         @foreach($order->items as $item)
@@ -127,7 +121,11 @@
                     </form>
                 @endif
 
-                <form method="POST" action="{{ route('orders.destroy', $order) }}" class="delete-order-form" data-order-number="{{ $order->order_number }}">
+                <form
+                    method="POST"
+                    action="{{ route('orders.destroy', $order) }}"
+                    class="delete-order-form"
+                >
                     @csrf
                     @method('DELETE')
                     <button class="text-xs text-rose-600 hover:text-rose-400">Delete order</button>
@@ -268,16 +266,25 @@
                     }
 
                     const readable = this.selectedStatus.replace(/_/g, ' ');
-                    const result = await Swal.fire({
-                        title: 'Change order status?',
-                        text: `Set this order to "${readable}"?`,
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Yes, update it',
-                        cancelButtonText: 'Cancel',
-                    });
+                    const confirmed = window.confirmSwal
+                        ? await window.confirmSwal({
+                            title: 'Change order status?',
+                            text: `Set this order to "${readable}"?`,
+                            icon: 'question',
+                            confirmButtonText: 'Yes, update it',
+                            cancelButtonText: 'Cancel',
+                            confirmButtonColor: '#111827',
+                        })
+                        : await Swal.fire({
+                            title: 'Change order status?',
+                            text: `Set this order to "${readable}"?`,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yes, update it',
+                            cancelButtonText: 'Cancel',
+                        }).then((result) => result.isConfirmed);
 
-                    if (!result.isConfirmed) {
+                    if (!confirmed) {
                         this.selectedStatus = this.currentStatus;
                         return;
                     }
@@ -362,30 +369,20 @@
         function handleConvertForm(event, form) {
             event.preventDefault();
 
-            if (!window.Swal) {
+            if (!window.confirmSwal) {
                 form.submit();
                 return;
             }
 
-            const orderId = form.dataset.orderId;
-            const quoteNumber = form.dataset.quoteNumber || 'N/A';
-            const clientName = form.dataset.clientName || 'N/A';
-            const remainingAmount = Number(form.dataset.remainingAmount) || 0;
-
-            Swal.fire({
-                title: `Convert Order #${orderId}?`,
-                html:
-                    `<p style="margin-bottom: 6px;">Quote: ${quoteNumber}</p>` +
-                    `<p style="margin-bottom: 6px;">Client: ${clientName}</p>` +
-                    `<p style="margin-bottom: 6px;">Remaining amount: ${formatCurrency(remainingAmount)}</p>` +
-                    `<p style="margin-top: 8px; color: #4b5563;">This will create an invoice for all remaining items.</p>`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Create invoice',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true,
-            }).then(result => {
-                if (result.isConfirmed) {
+            window.confirmSwal({
+                title: form.dataset.swalTitle || 'Convert order?',
+                text: form.dataset.swalText || 'This will create an invoice for all remaining items.',
+                icon: form.dataset.swalIcon || 'question',
+                confirmButtonText: form.dataset.swalConfirmButton || 'Create invoice',
+                cancelButtonText: form.dataset.swalCancelButton || 'Cancel',
+                confirmButtonColor: form.dataset.swalConfirmColor || '#10b981',
+            }).then((confirmed) => {
+                if (confirmed) {
                     form.submit();
                 }
             });
@@ -394,23 +391,20 @@
         function handleDeleteForm(event, form) {
             event.preventDefault();
 
-            if (!window.Swal) {
+            if (!window.confirmSwal) {
                 form.submit();
                 return;
             }
 
-            const orderNumber = form.dataset.orderNumber || '';
-
-            Swal.fire({
-                title: `Delete Order ${orderNumber}?`,
-                text: 'This action cannot be undone.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, delete it',
-                cancelButtonText: 'Keep it',
-                reverseButtons: true,
-            }).then(result => {
-                if (result.isConfirmed) {
+            window.confirmSwal({
+                title: form.dataset.swalTitle || 'Delete order?',
+                text: form.dataset.swalText || 'This action cannot be undone.',
+                icon: form.dataset.swalIcon || 'warning',
+                confirmButtonText: form.dataset.swalConfirmButton || 'Yes, delete it',
+                cancelButtonText: form.dataset.swalCancelButton || 'Keep it',
+                confirmButtonColor: form.dataset.swalConfirmColor || '#ef4444',
+            }).then((confirmed) => {
+                if (confirmed) {
                     form.submit();
                 }
             });
@@ -419,22 +413,20 @@
         function handleSendPdfForm(event, form) {
             event.preventDefault();
 
-            if (!window.Swal) {
+            if (!window.confirmSwal) {
                 form.submit();
                 return;
             }
 
-            const orderNumber = form.dataset.orderNumber || '';
-
-            Swal.fire({
-                title: `Send Order ${orderNumber} PDF?`,
-                text: 'The document will be emailed to the client.',
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonText: 'Send it',
-                cancelButtonText: 'Cancel',
-            }).then(result => {
-                if (result.isConfirmed) {
+            window.confirmSwal({
+                title: form.dataset.swalTitle || 'Send PDF?',
+                text: form.dataset.swalText || 'The document will be emailed to the client.',
+                icon: form.dataset.swalIcon || 'info',
+                confirmButtonText: form.dataset.swalConfirmButton || 'Send it',
+                cancelButtonText: form.dataset.swalCancelButton || 'Cancel',
+                confirmButtonColor: form.dataset.swalConfirmColor || '#111827',
+            }).then((confirmed) => {
+                if (confirmed) {
                     form.submit();
                 }
             });
@@ -443,30 +435,27 @@
         function handleDownloadLink(event, link) {
             event.preventDefault();
 
-            if (!window.Swal) {
+            if (!window.confirmSwal) {
                 window.location.href = link.href;
                 return;
             }
 
-            const orderNumber = link.dataset.orderNumber || '';
-
-            Swal.fire({
-                title: `Download Order ${orderNumber} PDF?`,
-                text: 'The file will download immediately.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Download',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true,
-            }).then(result => {
-                if (result.isConfirmed) {
+            window.confirmSwal({
+                title: link.dataset.swalTitle || 'Download PDF?',
+                text: link.dataset.swalText || 'The file will download immediately.',
+                icon: link.dataset.swalIcon || 'question',
+                confirmButtonText: link.dataset.swalConfirmButton || 'Download',
+                cancelButtonText: link.dataset.swalCancelButton || 'Cancel',
+                confirmButtonColor: link.dataset.swalConfirmColor || '#111827',
+            }).then((confirmed) => {
+                if (confirmed) {
                     window.location.href = link.href;
                 }
             });
         }
 
         function openConversionAlert() {
-            if (!window.Swal) {
+            if (!window.confirmSwal) {
                 document.getElementById('convert-all-swal-form')?.submit();
                 return;
             }
@@ -498,7 +487,36 @@
                 </div>
             `;
 
-            Swal.fire({
+            window.swalFire ? window.swalFire({
+                title: 'Choose Conversion Method',
+                html,
+                icon: 'question',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Create Full Invoice',
+                denyButtonText: 'Select Specific Items',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusConfirm: false,
+                didOpen: () => {
+                    const issueInput = Swal.getPopup().querySelector('#swal-issue-date');
+                    issueInput?.focus();
+                },
+                preConfirm: () => {
+                    const issueInput = Swal.getPopup().querySelector('#swal-issue-date');
+                    const dueInput = Swal.getPopup().querySelector('#swal-due-date');
+
+                    if (!issueInput?.value || !dueInput?.value) {
+                        Swal.showValidationMessage('Issue and due dates are required.');
+                        return false;
+                    }
+
+                    return {
+                        issue_date: issueInput.value,
+                        due_date: dueInput.value,
+                    };
+                },
+            }) : Swal.fire({
                 title: 'Choose Conversion Method',
                 html,
                 icon: 'question',

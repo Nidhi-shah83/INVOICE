@@ -114,10 +114,13 @@
                                                     method="POST"
                                                     action="{{ route('orders.createInvoice', $order) }}"
                                                     class="convert-invoice-form"
-                                                    data-order-id="{{ $order->id }}"
-                                                    data-quote-number="{{ e($order->quote?->quote_number ?? 'N/A') }}"
-                                                    data-client-name="{{ e($order->client->name) }}"
-                                                    data-remaining-amount="{{ number_format($order->remaining_amount, 2, '.', '') }}"
+                                                    data-swal-confirm
+                                                    data-swal-title="Convert order {{ $order->order_number }}?"
+                                                    data-swal-text="This will create an invoice for all remaining items."
+                                                    data-swal-confirm-button="Create invoice"
+                                                    data-swal-cancel-button="Cancel"
+                                                    data-swal-icon="question"
+                                                    data-swal-confirm-color="#10b981"
                                                 >
                                                     @csrf
                                                     @foreach($order->items as $item)
@@ -156,49 +159,5 @@
                 {{ $orders->withQueryString()->links() }}
             </div>
         </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.convert-invoice-form').forEach(form => {
-                form.addEventListener('submit', event => handleConvertForm(event, form));
-            });
-        });
-
-        function handleConvertForm(event, form) {
-            event.preventDefault();
-
-            if (!window.Swal) {
-                form.submit();
-                return;
-            }
-
-            const orderId = form.dataset.orderId;
-            const quoteNumber = form.dataset.quoteNumber || 'N/A';
-            const clientName = form.dataset.clientName || 'N/A';
-            const remainingAmount = Number(form.dataset.remainingAmount) || 0;
-
-            Swal.fire({
-                title: `Convert Order #${orderId}?`,
-                html:
-                    `<p style="margin-bottom: 6px;">Quote: ${quoteNumber}</p>` +
-                    `<p style="margin-bottom: 6px;">Client: ${clientName}</p>` +
-                    `<p style="margin-bottom: 6px;">Remaining amount: ${formatCurrency(remainingAmount)}</p>` +
-                    `<p style="margin-top: 8px; color: #4b5563;">This will create an invoice for all remaining items.</p>`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Create invoice',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true,
-            }).then(result => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
-            });
-        }
-
-        function formatCurrency(value) {
-            return `₹${value.toFixed(2)}`;
-        }
-    </script>
+</div>
 @endsection

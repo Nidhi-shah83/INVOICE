@@ -24,6 +24,7 @@
         $invoiceNumber = old('invoice_number', data_get($prefill, 'invoice_number', data_get($prefill, 'invoice_no')));
         $date = old('date', data_get($prefill, 'date', data_get($prefill, 'invoice_date', now()->toDateString())));
         $totalAmount = old('total_amount', data_get($prefill, 'total_amount', data_get($prefill, 'total', 0)));
+        $notes = old('notes', data_get($prefill, 'notes', data_get($prefill, 'description', data_get($prefill, 'raw_text', ''))));
     @endphp
 
     <div class="space-y-6">
@@ -112,7 +113,7 @@
                         name="notes"
                         rows="2"
                         class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    >{{ old('notes') }}</textarea>
+                    >{{ $notes }}</textarea>
                 </div>
             </div>
 
@@ -283,7 +284,7 @@
                 return;
             }
 
-            if (!window.Swal) {
+            if (!window.confirmSwal) {
                 submitInvoiceForm(form, action);
                 return;
             }
@@ -292,15 +293,15 @@
                 ? 'Submit this invoice as final?'
                 : 'Save a draft to revisit later?';
 
-            Swal.fire({
+            window.confirmSwal({
                 title: label,
                 text: message,
                 icon: 'question',
-                showCancelButton: true,
                 confirmButtonText: label,
                 cancelButtonText: 'Cancel',
-            }).then(result => {
-                if (result.isConfirmed) {
+                confirmButtonColor: action === 'final' ? '#10b981' : '#111827',
+            }).then((confirmed) => {
+                if (confirmed) {
                     submitInvoiceForm(form, action);
                 }
             });

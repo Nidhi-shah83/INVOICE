@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\AIService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Throwable;
 
@@ -24,22 +25,42 @@ class AIController extends Controller
     {
         $validated = $request->validate([
             'text' => ['required', 'string', 'max:20000'],
+        ], [
+            'text.required' => 'Please enter invoice text before parsing.',
         ]);
 
-        try {
-            $prefill = $this->aiService->parseInvoiceText($validated['text']);
-        } catch (Throwable $exception) {
-            report($exception);
+        $text = trim((string) $validated['text']);
 
+        if ($text === '') {
             return back()
                 ->withInput()
                 ->withErrors([
-                    'text' => 'Unable to parse invoice text right now. Please try again.',
+                    'text' => 'Please enter invoice text before parsing.',
                 ]);
+        }
+
+        try {
+            $prefill = $this->aiService->parseInvoiceText($text);
+        } catch (Throwable $exception) {
+            Log::warning('AI invoice parsing failed. Falling back to manual draft mode.', [
+                'user_id' => $request->user()?->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            $request->session()->put('invoice_draft', [
+                'notes' => $text,
+                'raw_text' => $text,
+            ]);
+
+            return redirect()
+                ->route('invoices.create')
+                ->with('status', 'AI parsing unavailable. Draft created with your input.');
         }
 
         $request->session()->put('invoice_draft', is_array($prefill) ? $prefill : []);
 
-        return redirect()->route('invoices.create');
+        return redirect()
+            ->route('invoices.create')
+            ->with('status', 'AI parsed successfully. Review your draft invoice.');
     }
 }

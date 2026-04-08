@@ -641,7 +641,7 @@
         function handleInvoiceSend(event, form) {
             event.preventDefault();
 
-            if (!window.Swal) {
+            if (!window.confirmSwal) {
                 form.submit();
                 return;
             }
@@ -649,16 +649,15 @@
             const invoiceNumber = form.dataset.invoiceNumber || 'invoice';
             const clientName = form.dataset.clientName || 'client';
 
-            Swal.fire({
+            window.confirmSwal({
                 title: `Send ${invoiceNumber}?`,
                 text: `Email this invoice to ${clientName}?`,
                 icon: 'question',
-                showCancelButton: true,
                 confirmButtonText: 'Send invoice',
                 cancelButtonText: 'Cancel',
-                reverseButtons: true,
-            }).then(result => {
-                if (result.isConfirmed) {
+                confirmButtonColor: '#10b981',
+            }).then((confirmed) => {
+                if (confirmed) {
                     form.submit();
                 }
             });
@@ -667,22 +666,22 @@
         function handleInvoiceDownload(event, link) {
             event.preventDefault();
 
-            if (!window.Swal) {
+            if (!window.confirmSwal) {
                 window.location.href = link.href;
                 return;
             }
 
             const invoiceNumber = link.dataset.invoiceNumber || 'invoice';
 
-            Swal.fire({
+            window.confirmSwal({
                 title: `Download ${invoiceNumber}?`,
                 text: 'The PDF will download after you confirm.',
                 icon: 'info',
-                showCancelButton: true,
                 confirmButtonText: 'Download',
                 cancelButtonText: 'Cancel',
-            }).then(result => {
-                if (result.isConfirmed) {
+                confirmButtonColor: '#111827',
+            }).then((confirmed) => {
+                if (confirmed) {
                     window.location.href = link.href;
                 }
             });
@@ -691,20 +690,20 @@
         function handleInvoiceCreate(event, link) {
             event.preventDefault();
 
-            if (!window.Swal) {
+            if (!window.confirmSwal) {
                 window.location.href = link.href;
                 return;
             }
 
-            Swal.fire({
+            window.confirmSwal({
                 title: 'Create a new invoice?',
                 text: 'You will be redirected to the invoice builder.',
                 icon: 'info',
-                showCancelButton: true,
                 confirmButtonText: 'Create invoice',
                 cancelButtonText: 'Cancel',
-            }).then(result => {
-                if (result.isConfirmed) {
+                confirmButtonColor: '#10b981',
+            }).then((confirmed) => {
+                if (confirmed) {
                     window.location.href = link.href;
                 }
             });
