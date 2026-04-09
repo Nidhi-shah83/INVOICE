@@ -1,25 +1,28 @@
-FROM php:8.2-cli
+FROM php:8.2
 
-# Install system dependencies
+# Install PostgreSQL driver
 RUN apt-get update && apt-get install -y \
-    git unzip curl libzip-dev zip \
-    && docker-php-ext-install zip pdo pdo_mysql
-
-
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+    libpq-dev \
+    zip \
+    unzip \
+    git \
+    curl \
+    && docker-php-ext-install pdo pdo_pgsql
 
 # Set working directory
-WORKDIR /app
+WORKDIR /var/www
 
 # Copy project
 COPY . .
 
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php
+
 # Install Laravel dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN php composer.phar install --no-dev --optimize-autoloader
 
 # Expose port
 EXPOSE 10000
 
-# Start Laravel server
+# Start Laravel
 CMD php artisan serve --host=0.0.0.0 --port=10000
