@@ -1,36 +1,34 @@
-FROM php:8.2
+# Use official PHP image
+FROM php:8.2-cli
 
-# Install system dependencies + Node
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    zip \
-    unzip \
     git \
+    unzip \
     curl \
-    nodejs \
-    npm \
-    && docker-php-ext-install pdo pdo_pgsql
+    libzip-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    && docker-php-ext-install pdo pdo_mysql zip
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www
 
-# Copy project
+# Copy project files
 COPY . .
 
-# Install Composer
-RUN curl -sS https://getcomposer.org/installer | php
+# Install Laravel dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-# Install PHP dependencies
-RUN php composer.phar install --no-dev --optimize-autoloader
-
-# Install Node dependencies
-RUN npm install
-
-# Build Vite assets
-RUN npm run build
+# Generate app key (ignore if already exists)
+RUN php artisan key:generate || true
 
 # Expose port
 EXPOSE 10000
 
-# Run migrations + start server
-CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=10000
+# Start Laravel server
+CMD php artisan serve --host=0.0.0.0 --port=10000
