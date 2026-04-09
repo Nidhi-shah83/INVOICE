@@ -2,6 +2,7 @@ import './bootstrap';
 
 import Alpine from 'alpinejs';
 import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 window.Alpine = Alpine;
 window.Swal = Swal;
@@ -9,7 +10,7 @@ window.Swal = Swal;
 const originalSwalFire = Swal.fire.bind(Swal);
 
 const swalBaseOptions = {
-    buttonsStyling: false,
+    buttonsStyling: true,
     scrollbarPadding: false,
     heightAuto: false,
     width: 'min(92vw, 34rem)',
