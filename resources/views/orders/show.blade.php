@@ -487,36 +487,11 @@
                 </div>
             `;
 
-            window.swalFire ? window.swalFire({
-                title: 'Choose Conversion Method',
-                html,
-                icon: 'question',
-                showCancelButton: true,
-                showDenyButton: true,
-                confirmButtonText: 'Create Full Invoice',
-                denyButtonText: 'Select Specific Items',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true,
-                focusConfirm: false,
-                didOpen: () => {
-                    const issueInput = Swal.getPopup().querySelector('#swal-issue-date');
-                    issueInput?.focus();
-                },
-                preConfirm: () => {
-                    const issueInput = Swal.getPopup().querySelector('#swal-issue-date');
-                    const dueInput = Swal.getPopup().querySelector('#swal-due-date');
+            const fireSwal = typeof window.swalFire === 'function'
+                ? window.swalFire
+                : Swal.fire.bind(Swal);
 
-                    if (!issueInput?.value || !dueInput?.value) {
-                        Swal.showValidationMessage('Issue and due dates are required.');
-                        return false;
-                    }
-
-                    return {
-                        issue_date: issueInput.value,
-                        due_date: dueInput.value,
-                    };
-                },
-            }) : Swal.fire({
+            fireSwal({
                 title: 'Choose Conversion Method',
                 html,
                 icon: 'question',
