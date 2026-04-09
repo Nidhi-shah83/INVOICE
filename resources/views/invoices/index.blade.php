@@ -172,11 +172,11 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3">
-                                    <div class="flex items-center gap-2 justify-center">
-                                        <div class="relative group inline-flex">
+                                    <div class="flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap">
+                                        <div class="relative group inline-flex m-0">
                                             <a
                                                 href="{{ route('invoices.download', $invoice) }}"
-                                                class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 js-download-invoice"
+                                                class="inline-flex m-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 js-download-invoice"
                                                 title="Download invoice {{ $invoice->invoice_number }} as PDF"
                                                 data-invoice-number="{{ $invoice->invoice_number }}"
                                                 aria-label="Download invoice {{ $invoice->invoice_number }}"
@@ -189,10 +189,10 @@
                                                 PDF
                                             </span>
                                         </div>
-                                        <div class="relative group inline-flex">
+                                        <div class="relative group inline-flex m-0">
                                             <a
                                                 href="{{ route('invoices.show', ['invoice' => $invoice, 'view' => '1']) }}"
-                                                class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                                                class="inline-flex m-0 items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600 hover:border-slate-300 hover:text-slate-900"
                                                 title="View invoice {{ $invoice->invoice_number }}"
                                                 aria-label="View invoice {{ $invoice->invoice_number }}"
                                             >
@@ -205,18 +205,18 @@
                                                 View
                                             </span>
                                         </div>
-                                        <div class="relative group inline-flex">
+                                        <div class="relative group inline-flex m-0">
                                             <form
                                                 action="{{ route('invoices.send', $invoice) }}"
                                                 method="POST"
-                                                class="js-send-invoice"
+                                                class="js-send-invoice inline-flex m-0"
                                                 data-invoice-number="{{ $invoice->invoice_number }}"
                                                 data-client-name="{{ $invoice->client->name ?? 'client' }}"
                                             >
                                                 @csrf
                                                 <button
                                                     type="submit"
-                                                    class="inline-flex items-center justify-center rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-900"
+                                                    class="inline-flex m-0 items-center justify-center rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-900"
                                                     title="Email invoice {{ $invoice->invoice_number }} to client"
                                                     aria-label="Send invoice {{ $invoice->invoice_number }}"
                                                 >
@@ -229,10 +229,10 @@
                                                 Send
                                             </span>
                                         </div>
-                                        <div class="relative group inline-flex">
+                                        <div class="relative group inline-flex m-0">
                                             <button
                                                 type="button"
-                                                class="inline-flex items-center justify-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 hover:text-blue-900 js-view-calls"
+                                                class="inline-flex m-0 items-center justify-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 hover:text-blue-900 js-view-calls"
                                                 data-invoice-number="{{ $invoice->invoice_number }}"
                                                 data-call-logs-url="{{ route('invoices.callLogs', ['invoice_number' => $invoice->invoice_number]) }}"
                                                 title="View call history for {{ $invoice->invoice_number }}"
