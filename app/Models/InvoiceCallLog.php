@@ -52,7 +52,6 @@ class InvoiceCallLog extends Model
 
     public function invoice()
     {
-        return $this->belongsTo(Invoice::class, 'invoice_number', 'invoice_number')
-            ->whereColumn('invoices.user_id', 'invoice_call_logs.user_id');
+        return $this->belongsTo(Invoice::class, 'invoice_number', 'invoice_number');
     }
 }
