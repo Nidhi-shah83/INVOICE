@@ -176,6 +176,17 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
+                        @if(!request()->routeIs('dashboard'))
+                            <button
+                                onclick="window.history.back()"
+                                class="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                            >
+                                <span class="sr-only">Go back</span>
+                                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                        @endif
                         <div>
                             <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">{{ setting('invoice_prefix', 'INV') }} Portal</p>
                             <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">@yield('page-title', 'Dashboard')</h1>

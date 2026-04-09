@@ -169,7 +169,7 @@ class QuoteController extends Controller
 
             Mail::to($clientEmail)->send(new QuoteMail($quote, $pdfOutput));
 
-            return back()->with('success', 'Quote sent successfully');
+            return redirect()->route('quotes.show', $quote)->with('success', 'Quote sent successfully');
         } catch (\Throwable $exception) {
             report($exception);
 

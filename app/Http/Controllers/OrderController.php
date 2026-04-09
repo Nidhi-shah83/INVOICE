@@ -133,7 +133,7 @@ class OrderController extends Controller
                 ->attachData($pdf->output(), "{$order->order_number}.pdf");
         });
 
-        return back()->with('status', 'Order PDF sent.');
+        return redirect()->route('orders.show', $order)->with('status', 'Order PDF sent.');
     }
 
     public function accept(int $id, string $token)

@@ -67,7 +67,7 @@
             @endif
 
             @if($invoiceId)
-                <a href="{{ route('invoices.pay', $invoiceId) }}" class="success-btn">Back to Invoice</a>
+                <a href="{{ route('invoices.show', $invoiceId) }}" class="success-btn">Back to Invoice</a>
             @endif
         </div>
     </div>
