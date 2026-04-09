@@ -6,7 +6,7 @@
     </head>
     <body style="font-family:'Inter',sans-serif;background:#f5f5f0;padding:32px;">
         <div style="max-width:640px;margin:auto;background:#fff;padding:32px;border-radius:16px;box-shadow:0 12px 40px rgba(15,23,42,.15);">
-            <p style="margin:0 0 6px;font-size:14px;color:#94a3b8;">{{ $businessName }}</p>
+            <p style="margin:0 0 6px;font-size:14px;color:#94a3b8;">{{ $companyName}}</p>
             <h1 style="margin:8px 0 16px;color:#0f172a;">Payment Received</h1>
             <p style="color:#475569;">Hi {{ $invoice->client->name }},</p>
             <p style="color:#475569;">Thank you for your payment of ₹{{ number_format($payment->amount, 2) }} for invoice {{ $invoice->invoice_number }} on {{ $payment->created_at->format('F d, Y') }}.</p>

@@ -368,7 +368,7 @@ class InvoiceService extends ModuleService
     {
         $invoice->load('client');
 
-        $pdf = Pdf::loadView('pdf.invoice', compact('invoice'));
+        $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
         $path = 'invoices/'.$invoice->invoice_number.'.pdf';
         Storage::disk('local')->put($path, $pdf->output());
 

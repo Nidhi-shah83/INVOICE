@@ -67,7 +67,7 @@
                         <div class="mt-5 space-y-4">
                             <div>
                                 <label for="business_name" class="text-sm font-medium text-slate-700 dark:text-slate-200">Business Name</label>
-                                <input id="business_name" name="business_name" type="text" value="{{ old('business_name', $settings['business_name']) }}" placeholder="e.g. Krunal Design" class="{{ $inputClass }} mt-1">
+                                <input id="business_name" name="business_name" type="text" value="{{ old('business_name', $settings['business_name']) }}" placeholder="e.g. Invoice Pro" class="{{ $inputClass }} mt-1">
                                 <p class="{{ $helperClass }}">This will appear on invoices and emails.</p>
                             </div>
 
@@ -281,7 +281,7 @@
 
                     <div>
                         <label for="mail_from_name" class="text-sm font-medium text-slate-700 dark:text-slate-200">From Name</label>
-                        <input id="mail_from_name" name="mail_from_name" type="text" value="{{ old('mail_from_name', $settings['mail_from_name']) }}" placeholder="e.g. Krunal Design Billing" class="{{ $inputClass }} mt-1">
+                        <input id="mail_from_name" name="mail_from_name" type="text" value="{{ old('mail_from_name', $settings['mail_from_name']) }}" placeholder="e.g. Invoice Pro Billing" class="{{ $inputClass }} mt-1">
                         <p class="{{ $helperClass }}">Name shown in recipients' inbox.</p>
                     </div>
 

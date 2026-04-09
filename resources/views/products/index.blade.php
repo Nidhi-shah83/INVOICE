@@ -30,25 +30,26 @@
                 </div>
 
                 <div class="mt-6 overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead class="text-left text-xs uppercase tracking-[0.3em] text-slate-500">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-900 text-white text-xs uppercase tracking-[0.3em]">
                             <tr>
-                                <th class="pb-3">Name</th>
-                                <th class="pb-3">Rate</th>
-                                <th class="pb-3">GST</th>
-                                <th class="pb-3">Unit</th>
-                                <th class="pb-3 text-right">Actions</th>
+                                <th class="px-4 py-3 text-left font-semibold">Name</th>
+                                <th class="px-4 py-3 text-left font-semibold">Rate</th>
+                                <th class="px-4 py-3 text-left font-semibold">GST</th>
+                                <th class="px-4 py-3 text-left font-semibold">Unit</th>
+                                <th class="px-4 py-3 text-right font-semibold">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-200 text-slate-700">
+                        <tbody class="divide-y divide-slate-100 bg-white text-slate-800">
                             @forelse($products as $product)
                                 <tr>
-                                    <td class="py-3 font-medium text-slate-900">{{ $product->name }}</td>
-                                    <td class="py-3">{{ number_format($product->rate, 2) }}</td>
-                                    <td class="py-3">{{ number_format($product->gst_percent, 2) }}%</td>
-                                    <td class="py-3">{{ $product->unit }}</td>
-                                    <td class="py-3 text-right flex justify-end gap-2">
-                                        <a
+                                    <td class="px-4 py-3 font-semibold text-slate-900">{{ $product->name }}</td>
+                                    <td class="px-4 py-3">{{ number_format($product->rate, 2) }}</td>
+                                    <td class="px-4 py-3">{{ number_format($product->gst_percent, 2) }}%</td>
+                                    <td class="px-4 py-3">{{ $product->unit }}</td>
+                                    <td class="px-4 py-3 text-right">
+                                        <div class="flex justify-end gap-2">
+                                            <a
                                             href="{{ route('products.edit', $product) }}"
                                             class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-700 transition hover:border-slate-300"
                                         >
@@ -70,6 +71,7 @@
                                                 Remove
                                             </button>
                                         </form>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

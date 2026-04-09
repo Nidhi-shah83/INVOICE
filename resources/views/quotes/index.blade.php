@@ -83,7 +83,7 @@
         </div>
 
         <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div class="overflow-x-auto">
+            <div class="">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-900 text-white">
                         <tr>
