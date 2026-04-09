@@ -6,12 +6,21 @@ html {
     scroll-behavior: smooth;
 }
 
+html,
+body {
+    overflow-x: hidden;
+}
+
 @layer base {
     .swal2-container {
         position: fixed !important;
         inset: 0 !important;
-        z-index: 99999 !important;
+        z-index: 999999 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         padding: 1rem !important;
+        overflow: visible !important;
     }
 
     .swal2-container.swal2-backdrop-show,
@@ -19,17 +28,20 @@ html {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        overflow: visible !important;
     }
 
     .swal2-popup {
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
+        width: auto !important;
+        max-width: 420px !important;
+        max-height: 90vh !important;
+        overflow: visible !important;
+        padding: 1.5rem !important;
         border-radius: 1.25rem !important;
         box-shadow: 0 25px 60px rgba(15, 23, 42, 0.22) !important;
-        max-height: calc(100vh - 2rem) !important;
-        overflow-y: auto !important;
-        padding-bottom: 1rem !important;
     }
 
     .swal2-popup .swal2-title {
@@ -51,15 +63,40 @@ html {
 
     .swal2-popup .swal2-actions {
         display: flex !important;
-        flex-wrap: wrap !important;
-        align-items: center !important;
         justify-content: center !important;
-        gap: 0.75rem !important;
+        gap: 10px !important;
+        flex-wrap: wrap !important;
         width: 100% !important;
         margin-top: 1rem !important;
         position: relative !important;
         z-index: 10 !important;
         flex-shrink: 0 !important;
+        overflow: visible !important;
+    }
+
+    .swal2-styled {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .swal2-popup .swal2-actions button,
+    .swal2-popup .swal2-actions .swal2-confirm,
+    .swal2-popup .swal2-actions .swal2-cancel,
+    .swal2-popup .swal2-actions .swal2-deny {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 0.875rem !important;
+        min-width: 6.5rem !important;
+        padding: 0.8rem 1.15rem !important;
+        margin: 0 !important;
+        border: 0 !important;
+        font-size: 0.875rem !important;
+        font-weight: 600 !important;
+        line-height: 1 !important;
+        cursor: pointer !important;
+        transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease !important;
     }
 
     .swal2-styled.swal2-confirm,
@@ -84,19 +121,22 @@ html {
     }
 
     .swal2-styled.swal2-confirm,
-    .swal2-confirm-btn {
+    .swal2-confirm-btn,
+    .swal2-popup .swal2-actions .swal2-confirm {
         background-color: #111827 !important;
         color: #fff !important;
     }
 
     .swal2-styled.swal2-cancel,
-    .swal2-cancel-btn {
+    .swal2-cancel-btn,
+    .swal2-popup .swal2-actions .swal2-cancel {
         background-color: #e5e7eb !important;
         color: #111827 !important;
     }
 
     .swal2-styled.swal2-deny,
-    .swal2-deny-btn {
+    .swal2-deny-btn,
+    .swal2-popup .swal2-actions .swal2-deny {
         background-color: #fef3c7 !important;
         color: #92400e !important;
     }
@@ -111,26 +151,6 @@ html {
     @media (max-width: 640px) {
         .swal2-container {
             padding: 0.75rem !important;
-        }
-
-        .swal2-popup {
-            width: calc(100vw - 1.5rem) !important;
-            padding: 1.15rem !important;
-            border-radius: 1rem !important;
-        }
-
-        .swal2-popup .swal2-actions {
-            flex-direction: column-reverse;
-            align-items: stretch;
-        }
-
-        .swal2-styled.swal2-confirm,
-        .swal2-styled.swal2-cancel,
-        .swal2-styled.swal2-deny,
-        .swal2-confirm-btn,
-        .swal2-cancel-btn,
-        .swal2-deny-btn {
-            width: 100% !important;
         }
     }
 }
