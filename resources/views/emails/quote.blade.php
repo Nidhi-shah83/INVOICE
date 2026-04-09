@@ -11,7 +11,7 @@
                 setting('business_name', 'Invoice Pro'),
                 setting('address', 'Address not set'),
                 'GSTIN '.setting('gstin', '-'),
-                setting('email', ''),
+                
                 setting('phone', ''),
             ]);
         @endphp
