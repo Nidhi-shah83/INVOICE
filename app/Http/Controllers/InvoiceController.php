@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\Invoice;
+use App\Models\InvoiceCallLog;
 use App\Services\InvoiceService;
 use App\Services\SettingService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -135,6 +136,13 @@ class InvoiceController extends Controller
         $invoice = Invoice::query()
             ->where('invoice_number', $invoice_number)
             ->firstOrFail();
+
+        if (! empty($invoice->user_id)) {
+            InvoiceCallLog::withoutGlobalScopes()
+                ->where('invoice_number', $invoice->invoice_number)
+                ->whereNull('user_id')
+                ->update(['user_id' => (int) $invoice->user_id]);
+        }
 
         $callLogs = $invoice->callLogs()
             ->orderByDesc('call_started_at')

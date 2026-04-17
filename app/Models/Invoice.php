@@ -96,8 +96,13 @@ class Invoice extends Model
 
     public function callLogs()
     {
-        return $this->hasMany(InvoiceCallLog::class, 'invoice_number', 'invoice_number')
-            ->whereColumn('invoice_call_logs.user_id', 'invoices.user_id');
+        $relation = $this->hasMany(InvoiceCallLog::class, 'invoice_number', 'invoice_number');
+
+        if (! empty($this->user_id)) {
+            $relation->where('invoice_call_logs.user_id', (int) $this->user_id);
+        }
+
+        return $relation;
     }
 
     public function getIsOverdueAttribute(): bool
